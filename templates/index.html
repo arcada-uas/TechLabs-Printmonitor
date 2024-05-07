@@ -13,13 +13,24 @@
     overflow-y: hidden;
 }
 p {
-    font-size: xx-large;
+    font-size: x-large;
     font-family: Arial, sans-serif;
+  }
+  h1 {
+    margin: 10px 0 5px 0;
+  }
+  #bookings {
+    height: 30%;
   }
     </style>
 </head>
 
 <body>
+  <div id="bookings">
+    <h1>Bookings</h1>
+    <div id="bookingData"></div>
+  </div>
+  <h1>Printer status</h1>
   <!-- Prusa-server computer -->
   <img id="printerImage" src="http://192.168.1.42:5000/images/last" alt="Printer Image" style="width:720px;">
   <div id="printerStatus" >
@@ -47,7 +58,7 @@ function fetchPrinterImage() {
         const imageUrl = URL.createObjectURL(blob);
         document.querySelector("#printerImage").src = imageUrl;
     })
-    .catch(error => { console.error('There was a problem with the fetch operation:', error);  });
+    .catch(error => { console.error('There was a problem with fetching the last webcam image:', error);  });
 }
 
 // CORS redirection via localhost
@@ -71,7 +82,39 @@ async function fetchPrinterStatus() {
         document.querySelector("#job-file-display_name").textContent = "No active job";
         document.querySelector("#job-time_remaining").textContent = "-";
     }
-  } catch (error) { console.error('There was a problem with the fetch operation:', error);  }
+  } catch (error) { console.error('There was a problem with fetching printer job data:', error);  }
+}
+
+async function fetchBlockBookings() {
+  try {
+    const response = await fetch('http://192.168.1.42:5000/api/arbs');
+    if (!response.ok) { throw new Error('Network response was not ok'); }
+    // Wait for the promise to be resolved
+    const data = await response.json(); 
+    console.log(data);
+
+    for (const booking of data) {
+      // Format XML
+      let eventTime = new Date(booking.start);
+      let localTime = eventTime.toLocaleTimeString('fi-FI');
+      let localTimeConc = localTime.substr(0, localTime.length-3);
+      const rooms = ["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"];
+      let eventRoom = rooms[booking.room_id-1];
+
+      // Create room and time of booking
+      let fragment = document.createDocumentFragment();
+      const li = fragment.appendChild(document.createElement("article")).appendChild(document.createElement("strong"));
+      li.textContent = eventRoom + " @ " + localTimeConc;
+      document.querySelector("#bookings").appendChild(fragment);
+      // Create title of booking
+      fragment = document.createDocumentFragment();
+      const span = fragment.appendChild(document.createElement("article"));
+      span.textContent = booking.title;
+      document.querySelector("#bookings").appendChild(fragment);
+    }
+
+  } catch (error) { console.error('There was a problem with fetching bookings:', error);  }
+  
 }
 
 // Fetch image every 10 seconds
@@ -79,6 +122,10 @@ setInterval(fetchPrinterImage, 10000);
 
 // Fetch printer status every 10 seconds
 setInterval(fetchPrinterStatus, 10000);
+
+fetchBlockBookings()
+// Fetch block bookings every 1 day (in seconds)
+setInterval(fetchBlockBookings, 86400000);
 </script>
 
 </html>

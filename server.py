@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, send_from_directory
 from pathlib import Path
 from camera import Camera
 import requests
+import xml.etree.ElementTree as ET 
 
 camera = Camera()
 printer_ip = 'http://192.168.1.34'
@@ -45,6 +46,25 @@ def get_data():
         # Store display_name of job in response from first API
         resJSON['display_name'] = res2Json['file']['display_name'] 
     return jsonify(resJSON)
+
+@app.route('/api/arbs')
+def get_bookings():
+  arbs_url = 'https://famnen.arcada.fi/arbs/infotv/block_bookings.php?wing=F&floor=3'
+  response = requests.get(arbs_url)
+  with open('arbs.xml', 'wb') as f: 
+    f.write(response.content)  
+  tree = ET.parse('arbs.xml') # create element tree object  
+  root = tree.getroot() # get root element 
+  bookings = [] 
+  for child in root:
+    if (child.tag == "booking"):
+      # print(child.attrib)
+      bookings.append(child.attrib) # list of dicts is suitable json
+    elif (child.tag == "room"):
+      continue
+    else:
+      bookings.append({'Bookings':'No bookings today'})
+  return jsonify(bookings)
 
 def gen(camera):
 	# Starting stream
