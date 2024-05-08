@@ -1,0 +1,49 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow-y: hidden;
+    font-family: "Inter", sans-serif;
+}
+
+p {
+    font-size: x-large;
+}
+
+h1 {
+    margin: 10px 0 5px 0;
+}
+
+hr {
+    border-top: 2px solid rgb(100, 100, 100);
+    margin: 20px 0px;
+}
+section {
+    width: 150px;
+    float: left;
+    text-align: center;
+}
+
+#bookings {
+    height: 60%;
+    padding: 40px 60px;
+}
+
+#printStatus {
+    background-color: #015AA9;
+    padding: 40px 60px;
+}
+
+#printContainer {
+    display: flex;
+}
+
+#printerImage {
+    width: 280px;
+    padding: 40px 0;
+}
+
+#printMonitor {
+    margin-left: 40px;
+    line-height: 1.5;
+}
