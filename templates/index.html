@@ -6,126 +6,147 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dennis Printmonitor</title>
-  <style>
-    html, body {
-    height: 100%;
-    margin: 0;
-    overflow-y: hidden;
-}
-p {
-    font-size: x-large;
-    font-family: Arial, sans-serif;
-  }
-  h1 {
-    margin: 10px 0 5px 0;
-  }
-  #bookings {
-    height: 30%;
-  }
-    </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
-  <div id="bookings">
-    <h1>Bookings</h1>
-    <div id="bookingData"></div>
-  </div>
-  <h1>Printer status</h1>
-  <!-- Prusa-server computer -->
-  <img id="printerImage" src="http://192.168.1.42:5000/images/last" alt="Printer Image" style="width:720px;">
-  <div id="printerStatus" >
-    <p>
-        <strong>Status: </strong><span id="printer-state"></span><br>
-        <strong>Job: </strong>    <span id="job-file-display_name"></span><br>
-        <strong>Progress: </strong> <span id="job-progress"></span> %<br>
-        <strong>Remaining: </strong> <span id="job-time_remaining"></span> mins<br>
-        <strong>Nozzle temp: </strong> <span id="printer-temp_nozzle"></span> C<br>
-        <strong>Bed temp: </strong>    <span id="printer-temp_bed"></span> C<br>
-        <strong>Z-height: </strong>   <span id="printer-axis_z"></span> mm<br>
-    </p>
+  <p id="bookings">
+  </p>
+  <div id="printStatus">
+    <h1>Printer status</h1>
+    <!-- Prusa-server computer -->
+    <div id="printContainer">
+      <img id="printerImage" src="http://192.168.1.42:5000/images/last" alt="Printer Image">
+      <div id="printMonitor">
+        <p>
+          <strong>Status: </strong><span id="printer-state"></span><br>
+          <strong>Job: </strong> <span id="job-file-display_name"></span><br>
+          <strong>Progress: </strong> <span id="job-progress"></span> %<br>
+          <strong>Remaining: </strong> <span id="job-time_remaining"></span> mins<br>
+          <strong>Nozzle temp: </strong> <span id="printer-temp_nozzle"></span> C<br>
+          <strong>Bed temp: </strong> <span id="printer-temp_bed"></span> C<br>
+          <strong>Z-height: </strong> <span id="printer-axis_z"></span> mm<br>
+        </p>
+      </div>
+    </div>
   </div>
 </body>
 
 
 <script>
-function fetchPrinterImage() {
+  function fetchPrinterImage() {
     fetch('http://192.168.1.42:5000/images/last') // Prusa server computer
-    .then(response => {
-        if (!response.ok) { throw new Error("Network error");  }
+      .then(response => {
+        if (!response.ok) { throw new Error("Network error"); }
         return response.blob();
-    })
-    .then(blob => {
+      })
+      .then(blob => {
         const imageUrl = URL.createObjectURL(blob);
         document.querySelector("#printerImage").src = imageUrl;
-    })
-    .catch(error => { console.error('There was a problem with fetching the last webcam image:', error);  });
-}
+      })
+      .catch(error => { console.error('There was a problem with fetching the last webcam image:', error); });
+  }
 
-// CORS redirection via localhost
-async function fetchPrinterStatus() {
-  try {
-    const response = await fetch('http://127.0.0.1:5000/api/data');
-    if (!response.ok) { throw new Error('Network response was not ok'); }
-    // Wait for the promise to be resolved
-    const data = await response.json(); 
-    // console.log(data);
-    document.querySelector("#printer-state").textContent = data.printer.state;
-    document.querySelector("#printer-temp_nozzle").textContent = data.printer.temp_nozzle;
-    document.querySelector("#printer-temp_bed").textContent = data.printer.temp_bed;
-    document.querySelector("#printer-axis_z").textContent = data.printer.axis_z;
-    if (data.job != undefined ) {
-    document.querySelector("#job-progress").textContent = data.job.progress;
-    document.querySelector("#job-file-display_name").textContent = data.display_name;
-    document.querySelector("#job-time_remaining").textContent = data.job.time_remaining/60;
-    } else {
+  // CORS redirection via localhost
+  async function fetchPrinterStatus() {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/data');
+      if (!response.ok) { throw new Error('Network response was not ok'); }
+      // Wait for the promise to be resolved
+      const data = await response.json();
+      // console.log(data);
+      document.querySelector("#printer-state").textContent = data.printer.state;
+      document.querySelector("#printer-temp_nozzle").textContent = data.printer.temp_nozzle;
+      document.querySelector("#printer-temp_bed").textContent = data.printer.temp_bed;
+      document.querySelector("#printer-axis_z").textContent = data.printer.axis_z;
+      if (data.job != undefined) {
+        document.querySelector("#job-progress").textContent = data.job.progress;
+        document.querySelector("#job-file-display_name").textContent = data.display_name;
+        document.querySelector("#job-time_remaining").textContent = data.job.time_remaining / 60;
+      } else {
         document.querySelector("#job-progress").textContent = "-";
         document.querySelector("#job-file-display_name").textContent = "No active job";
         document.querySelector("#job-time_remaining").textContent = "-";
+      }
+    } catch (error) { console.error('There was a problem with fetching printer job data:', error); }
+  }
+
+  async function fetchBlockBookings() {
+    try {
+      const response = await fetch('http://192.168.1.42:5000/api/arbs');
+      if (!response.ok) { throw new Error('Network response was not ok'); }
+      // Wait for the promise to be resolved
+      const data = await response.json();
+      console.log(data);
+      // Empty booking template
+      document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";
+
+      for (const booking of data) {
+        // Format XML
+        let eventTime = new Date(booking.start);
+        let localTime = eventTime.toLocaleTimeString('fi-FI');
+        let localTimeConc = localTime.substr(0, localTime.length - 3);
+        const rooms = ["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"];
+        let eventRoom = rooms[booking.room_id - 1];
+
+        // Line above booking
+        let hr = document.createElement("hr");
+        document.querySelector("#bookings").appendChild(hr);
+        // Time of booking
+        let time = document.createElement("time");
+        time.textContent = localTimeConc;
+        document.querySelector("#bookings").appendChild(time);
+        // Name of booking
+        let summary = document.createElement("summary");
+        summary.textContent = booking.title;
+        document.querySelector("#bookings").appendChild(summary);
+        // Room of booking
+        let mark = document.createElement("mark");
+        mark.textContent = eventRoom;
+        document.querySelector("#bookings").appendChild(mark);
+        // Name of booker (to be implemented)
+        let article = document.createElement("article");
+        article.innerHTML = "&nbsp;";
+        document.querySelector("#bookings").appendChild(article);
+      }
+
+    } catch (error) { 
+      console.error('There was a problem with fetching bookings:', error);
+      
+      // Fill the page with empty template
+      document.getElementById("#bookings").innerHTML =
+          `<h1>Bookings</h1> 
+        <hr>
+        <time>BCI lab</time>
+        <summary>No bookings</summary>
+        <mark>F363</mark>
+        <article>&nbsp;</article>
+        <hr>
+        <time>Computer lab</time>
+        <summary>No bookings</summary>
+        <mark>F365</mark>
+        <article>&nbsp;</article>
+        <hr>
+        <time>Robot lab</time>
+        <summary>No bookings</summary>
+        <mark>F367</mark>
+        <article>&nbsp;</article>`
     }
-  } catch (error) { console.error('There was a problem with fetching printer job data:', error);  }
-}
 
-async function fetchBlockBookings() {
-  try {
-    const response = await fetch('http://192.168.1.42:5000/api/arbs');
-    if (!response.ok) { throw new Error('Network response was not ok'); }
-    // Wait for the promise to be resolved
-    const data = await response.json(); 
-    console.log(data);
+  }
 
-    for (const booking of data) {
-      // Format XML
-      let eventTime = new Date(booking.start);
-      let localTime = eventTime.toLocaleTimeString('fi-FI');
-      let localTimeConc = localTime.substr(0, localTime.length-3);
-      const rooms = ["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"];
-      let eventRoom = rooms[booking.room_id-1];
+  // Fetch image every 10 seconds
+  setInterval(fetchPrinterImage, 10000);
 
-      // Create room and time of booking
-      let fragment = document.createDocumentFragment();
-      const li = fragment.appendChild(document.createElement("article")).appendChild(document.createElement("strong"));
-      li.textContent = eventRoom + " @ " + localTimeConc;
-      document.querySelector("#bookings").appendChild(fragment);
-      // Create title of booking
-      fragment = document.createDocumentFragment();
-      const span = fragment.appendChild(document.createElement("article"));
-      span.textContent = booking.title;
-      document.querySelector("#bookings").appendChild(fragment);
-    }
+  // Fetch printer status every 10 seconds
+  setInterval(fetchPrinterStatus, 10000);
 
-  } catch (error) { console.error('There was a problem with fetching bookings:', error);  }
-  
-}
-
-// Fetch image every 10 seconds
-setInterval(fetchPrinterImage, 10000);
-
-// Fetch printer status every 10 seconds
-setInterval(fetchPrinterStatus, 10000);
-
-fetchBlockBookings()
-// Fetch block bookings every 1 day (in seconds)
-setInterval(fetchBlockBookings, 86400000);
+  fetchBlockBookings()
+  // Fetch block bookings once an hour (in ms)
+  setInterval(fetchBlockBookings, 3600000);
 </script>
 
 </html>
