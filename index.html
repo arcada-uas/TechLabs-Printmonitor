@@ -8,14 +8,30 @@
   <title>Dennis Printmonitor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
-  <div id="bookings">
+  <section id="bookings">
     <h1>Bookings</h1>
-  </div>
+    <hr>
+    <time>BCI lab</time>
+    <summary>No bookings</summary>
+    <mark>F363</mark>
+    <article>&nbsp;</article>
+    <hr>
+    <time>Computer lab</time>
+    <summary>No bookings</summary>
+    <mark>F365</mark>
+    <article>&nbsp;</article>
+    <hr>
+    <time>Robot lab</time>
+    <summary>No bookings</summary>
+    <mark>F367</mark>
+    <article>&nbsp;</article>
+  </section>
+
   <div id="printStatus">
     <h1>Printer status</h1>
     <!-- Prusa-server computer -->
@@ -37,7 +53,7 @@
 </body>
 
 
-<script>
+<script type="module">
   function fetchPrinterImage() {
     fetch('http://192.168.1.42:5000/images/last') // Prusa server computer
       .then(response => {
@@ -82,6 +98,8 @@
       // Wait for the promise to be resolved
       const data = await response.json();
       console.log(data);
+      // Empty the template only if response has bookings
+      document.getElementById("bookings").innerHTML = "<h1>Bookings</h1>";
 
       for (const booking of data) {
         // Format XML
@@ -95,25 +113,28 @@
         let hr = document.createElement("hr");
         document.querySelector("#bookings").appendChild(hr);
         // Time of booking
-        let article = document.createElement("section");
-        article.textContent = localTimeConc;
-        document.querySelector("#bookings").appendChild(article);
-        // Room of booking
-        let fragment = document.createDocumentFragment();
-        const li = fragment.appendChild(article.appendChild(document.createElement("strong")));
-        li.textContent = eventRoom;
-        document.querySelector("#bookings").appendChild(fragment);
+        let time = document.createElement("time");
+        time.textContent = localTimeConc;
+        document.querySelector("#bookings").appendChild(time);
         // Name of booking
-        article = document.createElement("article");
-        article.textContent = booking.title;
-        document.querySelector("#bookings").appendChild(article);
+        let summary = document.createElement("summary");
+        summary.textContent = booking.title;
+        document.querySelector("#bookings").appendChild(summary);
+        // Room of booking
+        let mark = document.createElement("mark");
+        mark.textContent = eventRoom;
+        document.querySelector("#bookings").appendChild(mark);
         // Name of booker (to be implemented)
-        article = document.createElement("article");
-        article.textContent = "";
+        let article = document.createElement("article");
+        article.innerHTML = "&nbsp;";
         document.querySelector("#bookings").appendChild(article);
       }
 
-    } catch (error) { console.error('There was a problem with fetching bookings:', error); }
+    } catch (error) {
+      console.error('There was a problem with fetching bookings:', error);
+
+
+    }
 
   }
 
