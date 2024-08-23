@@ -1,77 +1,170 @@
+import sys, json, socket
+
 from flask import Flask, render_template, jsonify, send_from_directory
+from requests.auth import HTTPDigestAuth
 from pathlib import Path
 from camera import Camera
 import requests
-import xml.etree.ElementTree as ET 
+import xml.etree.ElementTree as ET
 
+debug = False  # True
 camera = Camera()
-printer_ip = 'http://192.168.1.34'
 
 app = Flask(__name__)
 
+# Load the credentials from the .env file
+class ConfigLoader:
+    def __init__(self, config_file):
+        self.config_file = config_file
+        self.credentials = {}
+
+    def load_credentials(self):
+        with open(self.config_file, 'r') as file:
+            for line in file:
+                key, value = line.strip().split('=')
+                self.credentials[key] = value
+
+    def get(self, key):
+        return self.credentials.get(key)
+
+# Render the index.html template with the context
+class TemplateRenderer:
+    def __init__(self, context):
+        self.context = context
+
+    def render_index(self):
+        if debug:
+            print('Rendering index with context:', self.context)
+        return render_template("index.html", **self.context)
+
+
+def get_featured_content():
+    with open('templates/featuredContent.html', 'r') as file:
+        return file.read()
+
+# Get the IP address of the server
+def get_server_ip():
+    return socket.gethostbyname(socket.gethostname())
+
+# Get the context for the index.html template
+def get_context(_debug=False):
+    server_ip = get_server_ip()
+    server_port = 5000
+    if _debug:
+        server_port = 5500
+    image_api = '/images/last'
+    data_api = '/api/data'
+    arbs_api = '/api/arbs'
+    server = f'http://{server_ip}:{server_port}'
+
+    context = {
+        'rooms': json.dumps(["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"]),
+        'featuredContent': get_featured_content(),
+        'image_url': f"{server}{image_api}",
+        'printer_status_url': f"{server}{data_api}",
+        'arbs_url': f"{server}{arbs_api}",
+        'background_image': f'{server}/images/FallbackPortrait1.png',
+    }
+    if _debug:
+        print('context printer url ', context['printer_status_url'])
+    return context
+
+
 @app.after_request
 def add_header(r):
-	""" Disable caching of image, allow CORS for infoscreen """
-	r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-	r.headers["Expires"] = "0"
-	r.headers["Access-Control-Allow-Origin"] = "*"
-	return r
+    """ Disable caching of image, allow CORS for infoscreen """
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    r.headers["Expires"] = "0"
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    return r
+
+# Initialize the TemplateRenderer with the context
+renderer = TemplateRenderer(get_context(debug))
+
 
 @app.route("/")
 def entrypoint():
-	return render_template("index.html")
+    return renderer.render_index()
+
 
 @app.route("/images/last")
 def last_image():
-	camera.capture_and_save()
-	return send_from_directory("images","last.png")
+    if debug:
+        return send_from_directory("images", "arcada-logo.png")
+    else:
+        camera.capture_and_save()
+        return send_from_directory("images", "last.png")
+
 
 @app.route('/api/data')
 def get_data():
     # Define the authentication credentials
-    username = 'maker'
-    password = 'YOURSECRETHERE'
+    username = config_loader.get('USERNAME')
+    password = config_loader.get('PASSWORD')
+    printer_ip = config_loader.get('PRINTER_IP')
 
-    # Fetch printer status
-    api_url = printer_ip + '/api/v1/status'  # Printer IP
-    response = requests.get(api_url, auth=requests.auth.HTTPDigestAuth(username, password))
-    resJSON = response.json()
-	
-    #print(resJSON)
-    if (resJSON['printer']['state'] == 'PRINTING'):
-		# Second api to get filename of current job 
-        api_url = printer_ip + '/api/v1/job'  # Printer IP
-        response = requests.get(api_url, auth=requests.auth.HTTPDigestAuth(username, password))
-        res2Json = response.json()
-        # Store display_name of job in response from first API
-        resJSON['display_name'] = res2Json['file']['display_name'] 
-    return jsonify(resJSON)
+    api_url = 'http://' + printer_ip + '/api/v1/status'  # Printer IP
+    # Talk to api to get printer status
+    try:
+        response = requests.get(api_url, auth=HTTPDigestAuth(username, password), timeout=10)
+        resJSON = response.json()
+
+        if debug:
+            print(api_url)
+            print(resJSON)
+
+        if resJSON['printer']['state'] == 'PRINTING':
+            # Second api to get filename of current job
+            api_url = 'http://' + printer_ip + '/api/v1/job'  # Printer IP
+            response = requests.get(api_url, auth=HTTPDigestAuth(username, password), timeout=10)
+            res2Json = response.json()
+            # Store display_name of job in response from first API
+            resJSON['display_name'] = res2Json['file']['display_name']
+        return jsonify(resJSON)
+    # If printer is not reachable
+    except requests.exceptions.RequestException as e:
+        print('Error:', e)
+        return jsonify({'error': 'Could not connect to printer',
+                        'printer': {'state': 'IDLE', 'display_name': 'Could not connect to printer'}})
+
 
 @app.route('/api/arbs')
 def get_bookings():
-  arbs_url = 'https://famnen.arcada.fi/arbs/infotv/block_bookings.php?wing=F&floor=3'
-  response = requests.get(arbs_url)
-  with open('arbs.xml', 'wb') as f: 
-    f.write(response.content)  
-  tree = ET.parse('arbs.xml') # create element tree object  
-  root = tree.getroot() # get root element 
-  bookings = [] 
-  for child in root:
-    if (child.tag == "booking"):
-      # print(child.attrib)
-      bookings.append(child.attrib) # list of dicts is suitable json
-    elif (child.tag == "room"):
-      continue
-    else:
-      bookings.append({'Bookings':'No bookings today'})
-  return jsonify(bookings)
+    arbs_url = 'https://famnen.arcada.fi/arbs/infotv/block_bookings.php?wing=F&floor=3'
+    response = requests.get(arbs_url)
+    with open('arbs.xml', 'wb') as _f:
+        _f.write(response.content)
+    tree = ET.parse('arbs.xml')  # create element tree object
+    root = tree.getroot()  # get root element
+    bookings = []
+    for child in root:
+        if child.tag == "booking":
+            # print(child.attrib)
+            bookings.append(child.attrib)  # list of dicts is suitable json
+        elif child.tag == "room":
+            continue
+        else:
+            bookings.append({'Bookings': 'No bookings today'})
+    return jsonify(bookings)
 
-def gen(camera):
-	# Starting stream
-	while True:
-		frame = camera.get_frame()
-		yield (b'--frame\r\n'
-			   b'Content-Type: image/png\r\n\r\n' + frame + b'\r\n')
 
-if __name__=="__main__":
-  app.run(host="0.0.0.0",debug=False)
+def gen(_camera):
+    # Starting stream
+    while True:
+        frame = _camera.get_frame()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/png\r\n\r\n' + frame + b'\r\n')
+
+
+if __name__ == "__main__":
+    config_loader = ConfigLoader('.env')
+    config_loader.load_credentials()
+
+    port = 5500 if debug else 5000
+    # Redirect stdout and stderr to log file
+    if not debug:
+        with open(config_loader.get('LOG_FILE'), 'a') as f:
+            sys.stdout = f
+            sys.stderr = f
+
+    app.run(host="0.0.0.0", port=port, debug=False)

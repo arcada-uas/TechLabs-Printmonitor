@@ -2,123 +2,153 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dennis Printmonitor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dennis Printmonitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<body>
-  <p id="bookings">
-  </p>
-  <div id="printStatus">
+{#<body style="background-image: url('{{  url_for("static", filename="FallbackPortrait1.png")  }}')">#}
+<body style="background-image: url('{{  url_for("static", filename="blob_scene_2.svg")  }}')">
+<div id="hub">
+    <img src="{{  url_for('static' , filename='hub.png') }}" alt="">
+</div>
+<div id="bookings">
+</div>
+<div id="printStatus">
     <h1>Printer status</h1>
     <!-- Prusa-server computer -->
     <div id="printContainer">
-      <img id="printerImage" src="http://192.168.1.42:5000/images/last" alt="Printer Image">
-      <div id="printMonitor">
-        <p>
-          <strong>Status: </strong><span id="printer-state"></span><br>
-          <strong>Job: </strong> <span id="job-file-display_name"></span><br>
-          <strong>Progress: </strong> <span id="job-progress"></span> %<br>
-          <strong>Remaining: </strong> <span id="job-time_remaining"></span> mins<br>
-          <strong>Nozzle temp: </strong> <span id="printer-temp_nozzle"></span> C<br>
-          <strong>Bed temp: </strong> <span id="printer-temp_bed"></span> C<br>
-          <strong>Z-height: </strong> <span id="printer-axis_z"></span> mm<br>
-        </p>
-      </div>
+        <img id="printerImage" src="{{ image_url }}" alt="Printer Image">
+        <div id="printMonitor">
+            <p>
+                <strong>Status: </strong><span id="printer-state"></span><br>
+                <strong>Job: </strong> <span id="job-file-display_name"></span><br>
+                <strong>Progress: </strong> <span id="job-progress"></span> %<br>
+                <strong>Remaining: </strong> <span id="job-time_remaining"></span> mins<br>
+                <strong>Nozzle temp: </strong> <span id="printer-temp_nozzle"></span> C<br>
+                <strong>Bed temp: </strong> <span id="printer-temp_bed"></span> C<br>
+                <strong>Z-height: </strong> <span id="printer-axis_z"></span> mm<br>
+            </p>
+        </div>
     </div>
-  </div>
+</div>
+<div id="featuredContent">
+    {{ featuredContent | safe }}
+</div>
+<div id="joke">
+    <p>{{ joke }}</p>
+</div>
 </body>
 
 
 <script>
-  function fetchPrinterImage() {
-    fetch('http://192.168.1.42:5000/images/last') // Prusa server computer
-      .then(response => {
-        if (!response.ok) { throw new Error("Network error"); }
-        return response.blob();
-      })
-      .then(blob => {
-        const imageUrl = URL.createObjectURL(blob);
-        document.querySelector("#printerImage").src = imageUrl;
-      })
-      .catch(error => { console.error('There was a problem with fetching the last webcam image:', error); });
-  }
+    function fetchPrinterImage() {
+        fetch('{{ image_url }}') // Prusa server computer
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Image data fetch failed");
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const imageUrl = URL.createObjectURL(blob);
+                document.querySelector("#printerImage").src = imageUrl;
+            })
+            .catch(error => {
+                console.error('There was a problem with fetching the last webcam image:', error);
+            });
+    }
 
-  // CORS redirection via localhost
-  async function fetchPrinterStatus() {
-    try {
-      const response = await fetch('http://127.0.0.1:5000/api/data');
-      if (!response.ok) { throw new Error('Network response was not ok'); }
-      // Wait for the promise to be resolved
-      const data = await response.json();
-      // console.log(data);
-      document.querySelector("#printer-state").textContent = data.printer.state;
-      document.querySelector("#printer-temp_nozzle").textContent = data.printer.temp_nozzle;
-      document.querySelector("#printer-temp_bed").textContent = data.printer.temp_bed;
-      document.querySelector("#printer-axis_z").textContent = data.printer.axis_z;
-      if (data.job != undefined) {
-        document.querySelector("#job-progress").textContent = data.job.progress;
-        document.querySelector("#job-file-display_name").textContent = data.display_name;
-        document.querySelector("#job-time_remaining").textContent = data.job.time_remaining / 60;
-      } else {
-        document.querySelector("#job-progress").textContent = "-";
-        document.querySelector("#job-file-display_name").textContent = "No active job";
-        document.querySelector("#job-time_remaining").textContent = "-";
-      }
-    } catch (error) { console.error('There was a problem with fetching printer job data:', error); }
-  }
+    // CORS redirection via localhost
+    async function fetchPrinterStatus() {
+        try {
+            const response = await fetch('{{printer_status_url}}');
+            if (!response.ok) {
+                throw new Error('Printer data fetch failed');
+            }
+            // Wait for the promise to be resolved
+            const data = await response.json();
 
-  async function fetchBlockBookings() {
-    try {
-      const response = await fetch('http://192.168.1.42:5000/api/arbs');
-      if (!response.ok) { throw new Error('Network response was not ok'); }
-      // Wait for the promise to be resolved
-      const data = await response.json();
-      console.log(data);
-      // Empty booking template
-      document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";
+            if (!data || !data.printer || !data.printer.state || data.printer.state === 'IDLE') {
+                console.log(data);
+                document.querySelector("#printStatus").style.display = "none";
+                {#document.querySelector("#featuredContent").style.display = "block";#}
+                document.querySelector("#joke").style.display = "block";
+            } else {
+                {#document.querySelector("#featuredContent").style.display = "none";#}
+                document.querySelector("#joke").style.display = "none";
+                document.querySelector("#printStatus").style.display = "block";
+                document.querySelector("#printer-state").textContent = data.printer.state;
+                document.querySelector("#printer-temp_nozzle").textContent = data.printer.temp_nozzle;
+                document.querySelector("#printer-temp_bed").textContent = data.printer.temp_bed;
+                document.querySelector("#printer-axis_z").textContent = data.printer.axis_z;
+                if (data.job !== undefined) {
+                    document.querySelector("#job-progress").textContent = data.job.progress;
+                    document.querySelector("#job-file-display_name").textContent = data.display_name;
+                    document.querySelector("#job-time_remaining").textContent = data.job.time_remaining / 60;
+                } else {
+                    document.querySelector("#job-progress").textContent = "-";
+                    document.querySelector("#job-file-display_name").textContent = "No active job";
+                    document.querySelector("#job-time_remaining").textContent = "-";
+                }
+            }
 
-      for (const booking of data) {
-        // Format XML
-        let eventTime = new Date(booking.start);
-        let localTime = eventTime.toLocaleTimeString('fi-FI');
-        let localTimeConc = localTime.substr(0, localTime.length - 3);
-        const rooms = ["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"];
-        let eventRoom = rooms[booking.room_id - 1];
+        } catch (error) {
+            console.error('There was a problem with fetching printer job data:', error);
+        }
+    }
 
-        // Line above booking
-        let hr = document.createElement("hr");
-        document.querySelector("#bookings").appendChild(hr);
-        // Time of booking
-        let time = document.createElement("time");
-        time.textContent = localTimeConc;
-        document.querySelector("#bookings").appendChild(time);
-        // Name of booking
-        let summary = document.createElement("summary");
-        summary.textContent = booking.title;
-        document.querySelector("#bookings").appendChild(summary);
-        // Room of booking
-        let mark = document.createElement("mark");
-        mark.textContent = eventRoom;
-        document.querySelector("#bookings").appendChild(mark);
-        // Name of booker (to be implemented)
-        let article = document.createElement("article");
-        article.innerHTML = "&nbsp;";
-        document.querySelector("#bookings").appendChild(article);
-      }
+    async function fetchBlockBookings() {
+        try {
+            const response = await fetch('{{arbs_url}}');
+            if (!response.ok) {
+                throw new Error('ARBS data fetch failed');
+            }
+            // Wait for the promise to be resolved
+            const data = await response.json();
+            console.log(data);
+            // Empty booking template
+            document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";
 
-    } catch (error) { 
-      console.error('There was a problem with fetching bookings:', error);
-      
-      // Fill the page with empty template
-      document.getElementById("#bookings").innerHTML =
-          `<h1>Bookings</h1> 
+            for (const booking of data) {
+                // Format XML "2024-08-22T07:30:00+03:00"
+                let localTimeConc = new Date(booking.start).toLocaleTimeString('fi-FI').slice(0, -3);
+                const rooms = {{ rooms|safe }};
+
+                let eventRoom = rooms[booking.room_id - 1];
+
+                // Line above booking
+                let hr = document.createElement("hr");
+                document.querySelector("#bookings").appendChild(hr);
+                // Time of booking
+                let time = document.createElement("time");
+                time.textContent = localTimeConc;
+                document.querySelector("#bookings").appendChild(time);
+                // Name of booking
+                let summary = document.createElement("summary");
+                summary.textContent = booking.title;
+                document.querySelector("#bookings").appendChild(summary);
+                // Room of booking
+                let mark = document.createElement("mark");
+                mark.textContent = eventRoom;
+                document.querySelector("#bookings").appendChild(mark);
+                // Name of booker (to be implemented)
+                let article = document.createElement("article");
+                article.innerHTML = "&nbsp;";
+                document.querySelector("#bookings").appendChild(article);
+            }
+
+        } catch (error) {
+            console.error('There was a problem with fetching bookings:', error);
+
+            // Fill the page with empty template
+            document.getElementById("#bookings").innerHTML =
+                `<h1>Bookings</h1>
         <hr>
         <time>BCI lab</time>
         <summary>No bookings</summary>
@@ -133,20 +163,52 @@
         <time>Robot lab</time>
         <summary>No bookings</summary>
         <mark>F367</mark>
-        <article>&nbsp;</article>`
+        <article>&nbsp;</article>`;
+        }
+
     }
 
-  }
+    // Fetch image every 10 seconds
+    setInterval(fetchPrinterImage, 20000);
 
-  // Fetch image every 10 seconds
-  setInterval(fetchPrinterImage, 10000);
+    // Fetch printer status every 10 seconds
+    setInterval(fetchPrinterStatus, 20000);
 
-  // Fetch printer status every 10 seconds
-  setInterval(fetchPrinterStatus, 10000);
+    fetchBlockBookings()
+    // Fetch block bookings once an hour (in ms)
+    setInterval(fetchBlockBookings, 3600000);
 
-  fetchBlockBookings()
-  // Fetch block bookings once an hour (in ms)
-  setInterval(fetchBlockBookings, 3600000);
+    let jokes = [];
+    function cleanJoke(joke) {
+        // Remove numbering and quotation marks
+        return joke.replace(/^\d+\.\s*“|”$/g, '').trim();
+    }
+    async function fetchJokes() {
+        try {
+            const response = await fetch('/static/jokes.arr');
+            if (!response.ok) {
+                throw new Error('Failed to fetch jokes');
+            }
+            const text = await response.text();
+            jokes = text.split('\n')
+                .map(cleanJoke)
+                .filter(joke => joke !== '');
+        } catch (error) {
+            console.error('Error fetching jokes:', error);
+        }
+    }
+
+    function setRandomJoke() {
+        if (jokes.length > 0) {
+            document.querySelector('#joke p').textContent = jokes[Math.floor(Math.random() * jokes.length)];
+        }
+    }
+
+    // Fetch jokes once on page load
+    fetchJokes().then(() => {
+        setRandomJoke();
+        // Update joke every 10 seconds
+        setInterval(setRandomJoke, 10000);
+    });
 </script>
-
 </html>

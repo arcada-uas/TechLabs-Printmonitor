@@ -1,23 +1,38 @@
+@font-face {
+    font-family: 'FuturaPTBook';
+    src: url('/static/FuturaPTBook.otf') format('opentype');
+}
+    @font-face {
+    font-family: 'FuturaPTBold';
+    src: url('/static/FuturaPTBold.otf') format('opentype');
+}
+
 html,
 body {
     height: 100%;
     margin: 0;
     overflow-y: hidden;
-    font-family: "Open Sans", sans-serif;
+    background-color: antiquewhite;
+    font-family: 'FuturaPTBook', sans-serif;
     font-optical-sizing: auto;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    color: #FFFFFF;
 }
 
 p {
-    font-size: x-large;
+    font-size: xx-large;
 }
 
 h1 {
     margin: 10px 0 5px 0;
+    font-family: 'FuturaPTBold', sans-serif;
 }
 
 hr {
     border-top: 2px solid rgb(100, 100, 100);
-    margin: 20px 0px;
+    margin: 20px 0;
 }
 time {
     font-weight: 700;
@@ -33,21 +48,29 @@ mark {
     width: 200px;
     float: left;
     text-align: center;
-    background-color: #FFF;
+    background-color: transparent;
+    color: #FFFFFF;
     line-height: 1.3;
 }
-
+#hub{
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding-right: 40px;
+}
 #bookings {
-    height: 60%;
     padding: 40px 50px;
     margin: 0;
     font-size: x-large;
+    position: relative;
+    top: 400px;
 }
 
 #printStatus {
-    background-color: #015AA9;
     padding: 40px 60px;
-    color: #fff;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
 }
 
 #printContainer {
@@ -61,5 +84,31 @@ mark {
 
 #printMonitor {
     margin-left: 40px;
+    line-height: 1.5;
+}
+
+#featuredContent {
+    position: absolute;
+    bottom: 0;
+    display: none;
+    width: 100%;
+}
+
+.feat-cont{
+    margin: 40px;
+}
+
+#joke {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    padding-left: 40px;
+    padding-bottom: 40px;
+    width: 80%;
+    display: none;
+}
+#joke p {
+    font-size: xx-large;
+    font-weight: 700;
     line-height: 1.5;
 }
