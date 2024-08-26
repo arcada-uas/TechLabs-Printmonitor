@@ -1,5 +1,6 @@
-import sys, json, socket
-
+import sys, json
+import socket
+import netifaces as ni
 from flask import Flask, render_template, jsonify, send_from_directory
 from requests.auth import HTTPDigestAuth
 from pathlib import Path
@@ -44,7 +45,20 @@ def get_featured_content():
 
 # Get the IP address of the server
 def get_server_ip():
-    return socket.gethostbyname(socket.gethostname())
+    print(f'Servers local IP: {socket.gethostbyname(socket.gethostname())}')
+    # return socket.gethostbyname(socket.gethostname())
+    # Get all interfaces
+    interfaces = ni.interfaces()
+    for interface in interfaces:
+        # Get addresses for each interface
+        addresses = ni.ifaddresses(interface)
+        # Check for IPv4 addresses
+        if ni.AF_INET in addresses:
+            ipv4_info = addresses[ni.AF_INET][0]
+            ip_address = ipv4_info['addr']
+            if ip_address != "127.0.0.1":
+                return ip_address
+    return "127.0.0.1"
 
 # Get the context for the index.html template
 def get_context(_debug=False):
@@ -159,7 +173,7 @@ if __name__ == "__main__":
     config_loader.load_credentials()
     # Initialize the TemplateRenderer with the context
     renderer = TemplateRenderer(get_context(_debug=debug))
-
+    print(f'Servers public IP4: {get_server_ip()}:{config_loader.get("SERVER_PORT")}')
     port = 5500 if debug else config_loader.get('SERVER_PORT')
     # Redirect stdout and stderr to log file
     # if not debug:
