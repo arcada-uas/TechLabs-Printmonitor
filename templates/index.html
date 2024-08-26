@@ -151,7 +151,7 @@
             const data = await response.json();
             console.log(data);
             // Empty booking template
-            document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";
+            {#document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";#}
             // check if data has bookings
             if (data.error !== '') {
                 console.log('data: ' + data.error);
