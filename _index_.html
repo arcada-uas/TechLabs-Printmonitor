@@ -13,23 +13,32 @@
 </head>
 
 <body>
+<div id="hub">
+    <img src="{{  url_for('static' , filename='hub.png') }}" alt="">
+</div>
   <section id="bookings">
-    <h1>Bookings</h1>
+    <h1>Bookings ...</h1>
+      <span id="F363">
     <hr>
-    <time>BCI lab</time>
-    <summary>No bookings</summary>
-    <mark>F363</mark>
-    <article>&nbsp;</article>
+          <time>BCI lab</time>
+          <summary>No bookings</summary>
+          <mark>F363</mark>
+          <article>&nbsp;</article>
+      </span>
+      <span id="F365">
     <hr>
-    <time>Computer lab</time>
-    <summary>No bookings</summary>
-    <mark>F365</mark>
-    <article>&nbsp;</article>
+          <time>Computer lab</time>
+          <summary>No bookings</summary>
+          <mark>F365</mark>
+          <article>&nbsp;</article>
+      </span>
+      <span id="F367">
     <hr>
-    <time>Robot lab</time>
-    <summary>No bookings</summary>
-    <mark>F367</mark>
-    <article>&nbsp;</article>
+          <time>Robot lab</time>
+          <summary>Always busy making the world a better place for robots and serving humans.</summary>
+          <mark>F367</mark>
+          <article>&nbsp</article>
+      </span>
   </section>
 
   <div id="printStatus">
@@ -100,15 +109,35 @@
       const data = await response.json();
       console.log(data);
       // Empty the template only if response has bookings
-      document.getElementById("bookings").innerHTML = "<h1>Bookings</h1>";
-
+      document.getElementById("bookings").innerHTML = "<h1>Bookings !</h1>";
+        // check if data has bookings
+        if (data.error !== '') {
+            console.log('data: '+ data.error);
+            return
+        }
       for (const booking of data) {
         // Format XML
-        let eventTime = new Date(booking.start);
-        let localTime = eventTime.toLocaleTimeString('fi-FI');
-        let localTimeConc = localTime.substr(0, localTime.length - 3);
-        const rooms = ["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"];
+        {#let eventTime = new Date(booking.start);#}
+        {#let localTime = eventTime.toLocaleTimeString('fi-FI');#}
+        {#let localTimeConc = localTime.substr(0, localTime.length - 3);#}
+        {#const rooms = ["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"];#}
+
+          // Format XML "2024-08-22T07:30:00+03:00"
+          function _time (time) {
+            return new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
+          }
+        let localTimeConc = _time(booking.start) + " - " + _time(booking.end);
+        const rooms = {{ rooms|safe }};
         let eventRoom = rooms[booking.room_id - 1];
+        try {
+            roomSpan = document.getElementById(eventRoom);
+            roomSpan.style.display = "none";
+        } catch (error) {
+            console.log('Booking for ' + eventRoom + ': ' + booking.title)
+        }
+        {#roomSpan.querySelector("time").textContent = localTimeConc;#}
+        {#roomSpan.querySelector("summary").textContent = booking.title;#}
+        {#roomSpan.querySelector("mark").textContent = eventRoom;#}
 
         // Line above booking
         let hr = document.createElement("hr");
@@ -134,6 +163,24 @@
     } catch (error) {
       console.error('There was a problem with fetching bookings:', error);
       document.getElementById("fallback").style.display = "block";
+        // Fill the page with empty template
+        {#document.getElementById("#bookings").innerHTML =#}
+        {#    `<h1>Bookings</h1>#}
+        {#<hr>#}
+        {#<time>BCI lab</time>#}
+        {#<summary>No bookings</summary>#}
+        {#<mark>F363</mark>#}
+        {#<article>&nbsp;</article>#}
+        {#<hr>#}
+        {#<time>Computer lab</time>#}
+        {#<summary>No bookings</summary>#}
+        {#<mark>F365</mark>#}
+        {#<article>&nbsp;</article>#}
+        {#<hr>#}
+        {#<time>Robot lab</time>#}
+        {#<summary>No bookings</summary>#}
+        {#<mark>F367</mark>#}
+        {#<article>&nbsp;</article>`;#}
     }
 
   }

@@ -13,11 +13,47 @@
 </head>
 
 {#<body style="background-image: url('{{  url_for("static", filename="FallbackPortrait1.png")  }}')">#}
-<body style="background-image: url('{{  url_for("static", filename="blob_scene_2.svg")  }}')">
+<body style="background-image: url('{{ url_for("static", filename="blob_scene_3.svg") }}')">
 <div id="hub">
-    <img src="{{  url_for('static' , filename='hub.png') }}" alt="">
+    <img src="{{ url_for('static' , filename='hub.png') }}" alt="">
 </div>
 <div id="bookings">
+
+    <h1>Bookings</h1>
+    <span id="F363">
+    <hr>
+          <div class="float-left">
+              <time>BCI lab</time>
+              <mark>F363</mark>
+          </div>
+          <div class="float-right">
+              <summary>No bookings</summary>
+              <article>&nbsp;</article>
+          </div>
+      </span>
+    <span id="F365">
+    <hr>
+          <div class="float-left">
+              <time>Computer lab</time>
+              <mark>F365</mark>
+          </div>
+        <div class="float-right">
+            <summary>No bookings</summary>
+            <article>&nbsp;</article>
+        </div>
+      </span>
+    <span id="F367">
+    <hr>
+          <div class="float-left">
+              <time>Robot lab</time>
+              <mark>F367</mark>
+          </div>
+          <div class="float-right">
+              <summary>Always busy making the world a better place for robots and serving humans. </summary>
+              <article>&nbsp</article>
+          </div>
+      </span>
+
 </div>
 <div id="printStatus">
     <h1>Printer status</h1>
@@ -41,8 +77,9 @@
     {{ featuredContent | safe }}
 </div>
 <div id="joke">
-    <p>{{ joke }}</p>
+    <p>{{ joke | safe }}</p>
 </div>
+<div id="fallback"></div>
 </body>
 
 
@@ -73,15 +110,16 @@
             }
             // Wait for the promise to be resolved
             const data = await response.json();
-
+            //  no printing running
             if (!data || !data.printer || !data.printer.state || data.printer.state === 'IDLE') {
                 console.log(data);
                 document.querySelector("#printStatus").style.display = "none";
-                {#document.querySelector("#featuredContent").style.display = "block";#}
-                document.querySelector("#joke").style.display = "block";
+                document.querySelector("#featuredContent").style.display = "block";
+                {#document.querySelector("#joke").style.display = "block";#}
             } else {
                 {#document.querySelector("#featuredContent").style.display = "none";#}
-                document.querySelector("#joke").style.display = "none";
+                document.querySelector("#featuredContent").style.display = "none";
+                {#document.querySelector("#joke").style.display = "none";#}
                 document.querySelector("#printStatus").style.display = "block";
                 document.querySelector("#printer-state").textContent = data.printer.state;
                 document.querySelector("#printer-temp_nozzle").textContent = data.printer.temp_nozzle;
@@ -114,13 +152,26 @@
             console.log(data);
             // Empty booking template
             document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";
-
+            // check if data has bookings
+            if (data.error !== '') {
+                console.log('data: ' + data.error);
+                return
+            }
             for (const booking of data) {
                 // Format XML "2024-08-22T07:30:00+03:00"
-                let localTimeConc = new Date(booking.start).toLocaleTimeString('fi-FI').slice(0, -3);
-                const rooms = {{ rooms|safe }};
+                function _time(time) {
+                    return new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
+                }
 
+                let localTimeConc = _time(booking.start) + " - " + _time(booking.end);
+                const rooms = {{ rooms|safe }};
                 let eventRoom = rooms[booking.room_id - 1];
+                try {
+                    roomSpan = document.getElementById(eventRoom);
+                    roomSpan.style.display = "none";
+                } catch (error) {
+                    console.log('Booking for ' + eventRoom + ': ' + booking.title)
+                }
 
                 // Line above booking
                 let hr = document.createElement("hr");
@@ -142,28 +193,11 @@
                 article.innerHTML = "&nbsp;";
                 document.querySelector("#bookings").appendChild(article);
             }
+            document.getElementById("fallback").style.display = "none";
 
         } catch (error) {
             console.error('There was a problem with fetching bookings:', error);
-
-            // Fill the page with empty template
-            document.getElementById("#bookings").innerHTML =
-                `<h1>Bookings</h1>
-        <hr>
-        <time>BCI lab</time>
-        <summary>No bookings</summary>
-        <mark>F363</mark>
-        <article>&nbsp;</article>
-        <hr>
-        <time>Computer lab</time>
-        <summary>No bookings</summary>
-        <mark>F365</mark>
-        <article>&nbsp;</article>
-        <hr>
-        <time>Robot lab</time>
-        <summary>No bookings</summary>
-        <mark>F367</mark>
-        <article>&nbsp;</article>`;
+            document.getElementById("fallback").style.display = "block";
         }
 
     }
@@ -179,10 +213,12 @@
     setInterval(fetchBlockBookings, 3600000);
 
     let jokes = [];
+
     function cleanJoke(joke) {
         // Remove numbering and quotation marks
         return joke.replace(/^\d+\.\s*“|”$/g, '').trim();
     }
+
     async function fetchJokes() {
         try {
             const response = await fetch('/static/jokes.arr');

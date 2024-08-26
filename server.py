@@ -146,18 +146,22 @@ def get_bookings():
     response = requests.get(arbs_url)
     with open('arbs.xml', 'wb') as _f:
         _f.write(response.content)
-    tree = ET.parse('arbs.xml')  # create element tree object
-    root = tree.getroot()  # get root element
-    bookings = []
-    for child in root:
-        if child.tag == "booking":
-            # print(child.attrib)
-            bookings.append(child.attrib)  # list of dicts is suitable json
-        elif child.tag == "room":
-            continue
-        else:
-            bookings.append({'Bookings': 'No bookings today'})
-    return jsonify(bookings)
+    try:
+        tree = ET.parse('arbs.xml')  # create element tree object
+        root = tree.getroot()  # get root element
+        bookings = []
+        for child in root:
+            if child.tag == "booking":
+                # print(child.attrib)
+                bookings.append(child.attrib)  # list of dicts is suitable json
+            elif child.tag == "room":
+                continue
+            else:
+                bookings.append({'Bookings': 'No bookings today'})
+        return jsonify(bookings)
+    except Exception as ex:
+        print(ex)
+        return jsonify({'error': 'no bookings available'})
 
 
 def gen(_camera):
