@@ -49,7 +49,7 @@ def get_server_ip():
 # Get the context for the index.html template
 def get_context(_debug=False):
     server_ip = get_server_ip()
-    server_port = 5000
+    server_port = config_loader.get('SERVER_PORT')
     if _debug:
         server_port = 5500
     image_api = '/images/last'
@@ -58,6 +58,7 @@ def get_context(_debug=False):
     server = f'http://{server_ip}:{server_port}'
 
     context = {
+        'server': server,
         'rooms': json.dumps(["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"]),
         'featuredContent': get_featured_content(),
         'image_url': f"{server}{image_api}",
@@ -77,9 +78,6 @@ def add_header(r):
     r.headers["Expires"] = "0"
     r.headers["Access-Control-Allow-Origin"] = "*"
     return r
-
-# Initialize the TemplateRenderer with the context
-renderer = TemplateRenderer(get_context(debug))
 
 
 @app.route("/")
@@ -159,12 +157,14 @@ def gen(_camera):
 if __name__ == "__main__":
     config_loader = ConfigLoader('.env')
     config_loader.load_credentials()
+    # Initialize the TemplateRenderer with the context
+    renderer = TemplateRenderer(get_context(_debug=debug))
 
-    port = 5500 if debug else 5000
+    port = 5500 if debug else config_loader.get('SERVER_PORT')
     # Redirect stdout and stderr to log file
-    if not debug:
-        with open(config_loader.get('LOG_FILE'), 'a') as f:
-            sys.stdout = f
-            sys.stderr = f
+    # if not debug:
+    #     with open(config_loader.get('LOG_FILE'), 'a') as f:
+    #         sys.stdout = f
+    #         sys.stderr = f
 
     app.run(host="0.0.0.0", port=port, debug=False)

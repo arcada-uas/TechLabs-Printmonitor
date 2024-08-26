@@ -36,7 +36,7 @@
     <h1>Printer status</h1>
     <!-- Prusa-server computer -->
     <div id="printContainer">
-      <img id="printerImage" src="http://192.168.1.42:5000/images/last" alt="Printer Image">
+      <img id="printerImage" src="{{ server }}/images/last" alt="Printer Image">
       <div id="printMonitor">
         <p>
           <strong>Status: </strong><span id="printer-state"></span><br>
@@ -50,12 +50,13 @@
       </div>
     </div>
   </div>
+  <div id="fallback"></div>
 </body>
 
 
 <script type="module">
   function fetchPrinterImage() {
-    fetch('http://192.168.1.42:5000/images/last') // Prusa server computer
+    fetch('{{ server }}/images/last') // Prusa server computer
       .then(response => {
         if (!response.ok) { throw new Error("Network error"); }
         return response.blob();
@@ -70,7 +71,7 @@
   // CORS redirection via localhost
   async function fetchPrinterStatus() {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/data');
+      const response = await fetch('{{ server }}/api/data');
       if (!response.ok) { throw new Error('Network response was not ok'); }
       // Wait for the promise to be resolved
       const data = await response.json();
@@ -93,7 +94,7 @@
 
   async function fetchBlockBookings() {
     try {
-      const response = await fetch('http://192.168.1.42:5000/api/arbs');
+      const response = await fetch('{{ server }}/api/arbs');
       if (!response.ok) { throw new Error('Network response was not ok'); }
       // Wait for the promise to be resolved
       const data = await response.json();
@@ -129,11 +130,10 @@
         article.innerHTML = "&nbsp;";
         document.querySelector("#bookings").appendChild(article);
       }
-
+        document.getElementById("fallback").style.display = "none";
     } catch (error) {
       console.error('There was a problem with fetching bookings:', error);
-
-
+      document.getElementById("fallback").style.display = "block";
     }
 
   }

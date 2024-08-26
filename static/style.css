@@ -78,7 +78,7 @@ mark {
 }
 
 #printerImage {
-    width: 280px;
+    height: 280px;
     padding: 40px 0;
 }
 
@@ -106,9 +106,22 @@ mark {
     padding-bottom: 40px;
     width: 80%;
     display: none;
+    z-index: 3;
 }
 #joke p {
     font-size: xx-large;
     font-weight: 700;
     line-height: 1.5;
+}
+
+#fallback {
+    position: absolute;
+    z-index: 2;
+    display: none;
+    background-image: image('static/FallbackPortrait1.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 100%;
+    height: 100%;
 }
