@@ -155,45 +155,46 @@
             // check if data has bookings
             if (data.error !== '') {
                 console.log('data: ' + data.error);
-                return
-            }
-            for (const booking of data) {
-                // Format XML "2024-08-22T07:30:00+03:00"
-                function _time(time) {
-                    return new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
-                }
+                {#return#}
+            } else   {
+                for (const booking of data) {
+                    // Format XML "2024-08-22T07:30:00+03:00"
+                    function _time(time) {
+                        return new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
+                    }
 
-                let localTimeConc = _time(booking.start) + " - " + _time(booking.end);
-                const rooms = {{ rooms|safe }};
-                let eventRoom = rooms[booking.room_id - 1];
-                try {
-                    roomSpan = document.getElementById(eventRoom);
-                    roomSpan.style.display = "none";
-                } catch (error) {
-                    console.log('Booking for ' + eventRoom + ': ' + booking.title)
-                }
+                    let localTimeConc = _time(booking.start) + " - " + _time(booking.end);
+                    const rooms = {{ rooms|safe }};
+                    let eventRoom = rooms[booking.room_id - 1];
+                    try {
+                        roomSpan = document.getElementById(eventRoom);
+                        roomSpan.style.display = "none";
+                    } catch (error) {
+                        console.log('Booking for ' + eventRoom + ': ' + booking.title)
+                    }
 
-                // Line above booking
-                let hr = document.createElement("hr");
-                document.querySelector("#bookings").appendChild(hr);
-                // Time of booking
-                let time = document.createElement("time");
-                time.textContent = localTimeConc;
-                document.querySelector("#bookings").appendChild(time);
-                // Name of booking
-                let summary = document.createElement("summary");
-                summary.textContent = booking.title;
-                document.querySelector("#bookings").appendChild(summary);
-                // Room of booking
-                let mark = document.createElement("mark");
-                mark.textContent = eventRoom;
-                document.querySelector("#bookings").appendChild(mark);
-                // Name of booker (to be implemented)
-                let article = document.createElement("article");
-                article.innerHTML = "&nbsp;";
-                document.querySelector("#bookings").appendChild(article);
+                    // Line above booking
+                    let hr = document.createElement("hr");
+                    document.querySelector("#bookings").appendChild(hr);
+                    // Time of booking
+                    let time = document.createElement("time");
+                    time.textContent = localTimeConc;
+                    document.querySelector("#bookings").appendChild(time);
+                    // Name of booking
+                    let summary = document.createElement("summary");
+                    summary.textContent = booking.title;
+                    document.querySelector("#bookings").appendChild(summary);
+                    // Room of booking
+                    let mark = document.createElement("mark");
+                    mark.textContent = eventRoom;
+                    document.querySelector("#bookings").appendChild(mark);
+                    // Name of booker (to be implemented)
+                    let article = document.createElement("article");
+                    article.innerHTML = "&nbsp;";
+                    document.querySelector("#bookings").appendChild(article);
+                }
+                document.getElementById("fallback").style.display = "none";
             }
-            document.getElementById("fallback").style.display = "none";
 
         } catch (error) {
             console.error('There was a problem with fetching bookings:', error);
