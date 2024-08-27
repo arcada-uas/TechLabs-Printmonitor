@@ -52,12 +52,14 @@ summary {
     display: block;
 }
 mark {
-    width: 200px;
+    font-family: 'FuturaPTBold';
+    width: 80px;
     /*float: left;*/
     display: block;
     text-align: center;
     background-color: transparent;
     color: #FFFFFF;
+    /*font-weight: bold;*/
     line-height: 1.3;
 }
 .float-left{
@@ -67,6 +69,27 @@ mark {
 .float-right{
     display: table-cell;
     right: 0;
+}
+.row{
+    display: inline-flex;
+    /* align-content: stretch; */
+    justify-content: center;
+    align-items: center;
+    justify-items: center;
+}
+.left-column, .right-column{
+    display: table-cell;
+    /*width: 50%;*/
+    height: 100%;
+}
+.row-right{
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.room-id{
+    display: table-cell;
+    height: 100%;
+    align-content: center;
 }
 #hub{
     position: absolute;

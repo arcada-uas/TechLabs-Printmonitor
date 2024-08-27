@@ -23,7 +23,7 @@ class ConfigLoader:
         with open(self.config_file, 'r') as file:
             for line in file:
                 key, value = line.strip().split('=')
-                self.credentials[key] = value
+                self.credentials[key.strip()] = value.strip()
 
     def get(self, key):
         return self.credentials.get(key)
@@ -46,7 +46,6 @@ def get_featured_content():
 # Get the IP address of the server
 def get_server_ip():
     print(f'Servers local IP: {socket.gethostbyname(socket.gethostname())}')
-    # return socket.gethostbyname(socket.gethostname())
     # Get all interfaces
     interfaces = ni.interfaces()
     for interface in interfaces:
@@ -73,7 +72,7 @@ def get_context(_debug=False):
 
     context = {
         'server': server,
-        'rooms': json.dumps(["F363", "F364", "F365", "F366", "F367", "F368", "F369", "F370"]),
+        'rooms': json.dumps(["F363", "F364", "F365", "F367", "F368", "F370"]),
         'featuredContent': get_featured_content(),
         'image_url': f"{server}{image_api}",
         'printer_status_url': f"{server}{data_api}",
@@ -146,8 +145,9 @@ def get_bookings():
     try:
         response = requests.get(arbs_url)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        with open('arbs.xml', 'wb') as _f:
-            _f.write(response.content)
+        if len(response.content) > 10:
+            with open('arbs.xml', 'wb') as _f:
+                _f.write(response.content)
     except requests.exceptions.RequestException as e:
         print('Request failed, falling back to cached arbs.xml:', e)
     try:

@@ -125,20 +125,45 @@
                 roomSpan = document.createElement("span");
                 roomSpan.id = eventRoom;
                 document.querySelector("#bookings").appendChild(roomSpan);
+                // Line above booking
+                roomSpan.appendChild(document.createElement("hr"));
+                // create div table  add it to the room span
+                let table = document.createElement("div");
+                table.className = 'table';
+                // create div row add it to the table
+                let row = document.createElement("div");
+                row.className = 'row';
+                table.appendChild(row);
+                // create div column add it to the row
+                let colLeft = document.createElement("div");
+                colLeft.className = 'left-column';
+                // vertical alignment of the content in the column is set to center
+                colLeft.style.verticalAlign = 'center';
+                row.appendChild(colLeft);
+                // Room of booking
+                let mark = document.createElement("mark");
+                mark.textContent = eventRoom;
+                colLeft.appendChild(mark);
+                // create div column add it to the row
+                let colRight = document.createElement("div");
+                colRight.className = 'right-column';
+                row.appendChild(colRight);
+                roomSpan.appendChild(table);
             }
-            // Line above booking
-            roomSpan.appendChild(document.createElement("hr"));
 
+            console.log('roomSpan:');
+            console.log(roomSpan)
+            console.log(roomSpan.querySelector(".right-column"))
+            let rCol = roomSpan.querySelector(".right-column");
+            let rightRow = document.createElement("div");
+            rightRow.className = 'row-right';
             let leftDiv = Object.assign(document.createElement("div"), {className: 'float-left'});
             // Time of booking
             let time = document.createElement("time");
             time.textContent = _time(booking.start) + " - " + _time(booking.end);
             leftDiv.appendChild(time);
-            // Room of booking
-            let mark = document.createElement("mark");
-            mark.textContent = eventRoom;
-            leftDiv.appendChild(mark);
-            roomSpan.appendChild(leftDiv);
+            rightRow.appendChild(leftDiv);
+
             let rightDiv = Object.assign(document.createElement("div"), {className: 'float-right'});
             // Name of booking
             let summary = document.createElement("summary");
@@ -147,8 +172,10 @@
             // Name of booker (to be implemented)
             let article = document.createElement("article");
             article.innerHTML = "&nbsp;";
-            rightDiv.appendChild(article);
-            roomSpan.appendChild(rightDiv);
+            // rightDiv.appendChild(article);
+            rightRow.appendChild(rightDiv);
+
+            rCol.appendChild(rightRow);
 
         }
 
@@ -188,13 +215,14 @@
                         return [];
                     }
                 }
+
                 // add missing rooms without bookings to the DOM
-                const emptyBookings = await fetchAndParseEmptyBookings()
+{#                const emptyBookings = await fetchAndParseEmptyBookings()
                 for (const span of emptyBookings) {
                     if (document.getElementById(span.id) === null) {
                         document.querySelector("#bookings").appendChild(span);
                     }
-                }
+                }#}
                 document.getElementById("fallback").style.display = "none";
             }
 
