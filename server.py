@@ -143,9 +143,13 @@ def get_data():
 @app.route('/api/arbs')
 def get_bookings():
     arbs_url = 'https://famnen.arcada.fi/arbs/infotv/block_bookings.php?wing=F&floor=3'
-    response = requests.get(arbs_url)
-    with open('arbs.xml', 'wb') as _f:
-        _f.write(response.content)
+    try:
+        response = requests.get(arbs_url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        with open('arbs.xml', 'wb') as _f:
+            _f.write(response.content)
+    except requests.exceptions.RequestException as e:
+        print('Request failed, falling back to cached arbs.xml:', e)
     try:
         tree = ET.parse('arbs.xml')  # create element tree object
         root = tree.getroot()  # get root element

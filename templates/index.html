@@ -19,40 +19,7 @@
 </div>
 <div id="bookings">
 
-    <h1>Bookings</h1>
-    <span id="F363">
-    <hr>
-          <div class="float-left">
-              <time>BCI lab</time>
-              <mark>F363</mark>
-          </div>
-          <div class="float-right">
-              <summary>No bookings</summary>
-              <article>&nbsp;</article>
-          </div>
-      </span>
-    <span id="F365">
-    <hr>
-          <div class="float-left">
-              <time>Computer lab</time>
-              <mark>F365</mark>
-          </div>
-        <div class="float-right">
-            <summary>No bookings</summary>
-            <article>&nbsp;</article>
-        </div>
-      </span>
-    <span id="F367">
-    <hr>
-          <div class="float-left">
-              <time>Robot lab</time>
-              <mark>F367</mark>
-          </div>
-          <div class="float-right">
-              <summary>Always busy making the world a better place for robots and serving humans. </summary>
-              <article>&nbsp</article>
-          </div>
-      </span>
+    <h1>Bookings:</h1>
 
 </div>
 <div id="printStatus">
@@ -142,6 +109,49 @@
     }
 
     async function fetchBlockBookings() {
+
+        function addBookingToDOM(rooms, booking) {
+
+            // Format XML "2024-08-22T07:30:00+03:00"
+            function _time(time) {
+                return new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
+            }
+
+            let eventRoom = rooms[booking.room_id - 1];
+            // Find the room span with the room id equal to the eventRoom
+            let roomSpan = document.getElementById(eventRoom);
+            // If the room span does not exist, create it
+            if (roomSpan === null) {
+                roomSpan = document.createElement("span");
+                roomSpan.id = eventRoom;
+                document.querySelector("#bookings").appendChild(roomSpan);
+            }
+            // Line above booking
+            roomSpan.appendChild(document.createElement("hr"));
+
+            let leftDiv = Object.assign(document.createElement("div"), {className: 'float-left'});
+            // Time of booking
+            let time = document.createElement("time");
+            time.textContent = _time(booking.start) + " - " + _time(booking.end);
+            leftDiv.appendChild(time);
+            // Room of booking
+            let mark = document.createElement("mark");
+            mark.textContent = eventRoom;
+            leftDiv.appendChild(mark);
+            roomSpan.appendChild(leftDiv);
+            let rightDiv = Object.assign(document.createElement("div"), {className: 'float-right'});
+            // Name of booking
+            let summary = document.createElement("summary");
+            summary.textContent = booking.title;
+            rightDiv.appendChild(summary);
+            // Name of booker (to be implemented)
+            let article = document.createElement("article");
+            article.innerHTML = "&nbsp;";
+            rightDiv.appendChild(article);
+            roomSpan.appendChild(rightDiv);
+
+        }
+
         try {
             const response = await fetch('{{arbs_url}}');
             if (!response.ok) {
@@ -149,49 +159,41 @@
             }
             // Wait for the promise to be resolved
             const data = await response.json();
+            console.log('data: ');
             console.log(data);
-            // Empty booking template
-            {#document.querySelector("#bookings").innerHTML = "<h1>Bookings</h1>";#}
             // check if data has bookings
-            if (data.error !== '') {
+            if (!data.error === undefined) {
                 console.log('data: ' + data.error);
-                {#return#}
-            } else   {
-                for (const booking of data) {
-                    // Format XML "2024-08-22T07:30:00+03:00"
-                    function _time(time) {
-                        return new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
-                    }
+            } else {
+                const rooms = {{ rooms|safe }};
+                for (const booking of data) addBookingToDOM(rooms, booking);
 
-                    let localTimeConc = _time(booking.start) + " - " + _time(booking.end);
-                    const rooms = {{ rooms|safe }};
-                    let eventRoom = rooms[booking.room_id - 1];
+                // read the empty bookings template from the file
+                async function fetchAndParseEmptyBookings() {
                     try {
-                        roomSpan = document.getElementById(eventRoom);
-                        roomSpan.style.display = "none";
-                    } catch (error) {
-                        console.log('Booking for ' + eventRoom + ': ' + booking.title)
-                    }
+                        const response = await fetch('{{ url_for("static", filename="emptyBookings.html") }}');
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch emptyBookings.html');
+                        }
+                        const text = await response.text();
 
-                    // Line above booking
-                    let hr = document.createElement("hr");
-                    document.querySelector("#bookings").appendChild(hr);
-                    // Time of booking
-                    let time = document.createElement("time");
-                    time.textContent = localTimeConc;
-                    document.querySelector("#bookings").appendChild(time);
-                    // Name of booking
-                    let summary = document.createElement("summary");
-                    summary.textContent = booking.title;
-                    document.querySelector("#bookings").appendChild(summary);
-                    // Room of booking
-                    let mark = document.createElement("mark");
-                    mark.textContent = eventRoom;
-                    document.querySelector("#bookings").appendChild(mark);
-                    // Name of booker (to be implemented)
-                    let article = document.createElement("article");
-                    article.innerHTML = "&nbsp;";
-                    document.querySelector("#bookings").appendChild(article);
+                        // Parse the fetched content as an HTML document
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(text, 'text/html');
+
+                        // Select all span elements within the parsed document
+                        return Array.from(doc.querySelectorAll('span'));
+                    } catch (error) {
+                        console.error('Error fetching and parsing emptyBookings.html:', error);
+                        return [];
+                    }
+                }
+                // add missing rooms without bookings to the DOM
+                const emptyBookings = await fetchAndParseEmptyBookings()
+                for (const span of emptyBookings) {
+                    if (document.getElementById(span.id) === null) {
+                        document.querySelector("#bookings").appendChild(span);
+                    }
                 }
                 document.getElementById("fallback").style.display = "none";
             }
