@@ -1,17 +1,22 @@
-import sys, json
+# install dependencies from requirements.txt
+import subprocess
+
+subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True)
+
+import json
 import socket
 import netifaces as ni
 from flask import Flask, render_template, jsonify, send_from_directory
 from requests.auth import HTTPDigestAuth
-from pathlib import Path
 from camera import Camera
 import requests
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ElementTree
 
 debug = False  # True
 camera = Camera()
 
 app = Flask(__name__)
+
 
 # Load the credentials from the .env file
 class ConfigLoader:
@@ -28,6 +33,7 @@ class ConfigLoader:
     def get(self, key):
         return self.credentials.get(key)
 
+
 # Render the index.html template with the context
 class TemplateRenderer:
     def __init__(self, context):
@@ -43,12 +49,12 @@ def get_featured_content():
     with open('templates/featuredContent.html', 'r') as file:
         return file.read()
 
+
 # Get the IP address of the server
 def get_server_ip():
-    print(f'Servers local IP: {socket.gethostbyname(socket.gethostname())}')
+    # print(f'Servers local IP: {socket.gethostbyname(socket.gethostname())}')
     # Get all interfaces
-    interfaces = ni.interfaces()
-    for interface in interfaces:
+    for interface in ni.interfaces():
         # Get addresses for each interface
         addresses = ni.ifaddresses(interface)
         # Check for IPv4 addresses
@@ -58,6 +64,7 @@ def get_server_ip():
             if ip_address != "127.0.0.1":
                 return ip_address
     return "127.0.0.1"
+
 
 # Get the context for the index.html template
 def get_context(_debug=False):
@@ -151,7 +158,7 @@ def get_bookings():
     except requests.exceptions.RequestException as e:
         print('Request failed, falling back to cached arbs.xml:', e)
     try:
-        tree = ET.parse('arbs.xml')  # create element tree object
+        tree = ElementTree.parse('arbs.xml')  # create element tree object
         root = tree.getroot()  # get root element
         bookings = []
         for child in root:
@@ -177,6 +184,7 @@ def gen(_camera):
 
 
 if __name__ == "__main__":
+    # Load the credentials from the .env file
     config_loader = ConfigLoader('.env')
     config_loader.load_credentials()
     # Initialize the TemplateRenderer with the context
