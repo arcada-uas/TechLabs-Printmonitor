@@ -192,6 +192,7 @@
             if (!data.error === undefined) {
                 console.log('data: ' + data.error);
             } else {
+                document.getElementById("bookings").innerHTML = "<h1>Bookings:</h1>";
                 const rooms = {{ rooms|safe }};
                 for (const booking of data) addBookingToDOM(rooms, booking);
 
@@ -217,12 +218,12 @@
                 }
 
                 // add missing rooms without bookings to the DOM
-{#                const emptyBookings = await fetchAndParseEmptyBookings()
-                for (const span of emptyBookings) {
-                    if (document.getElementById(span.id) === null) {
-                        document.querySelector("#bookings").appendChild(span);
-                    }
-                }#}
+//               const emptyBookings = await fetchAndParseEmptyBookings()
+  //              for (const span of emptyBookings) {
+    //                if (document.getElementById(span.id) === null) {
+      //                  document.querySelector("#bookings").appendChild(span);
+        //            }
+          //      }
                 document.getElementById("fallback").style.display = "none";
             }
 
@@ -233,10 +234,10 @@
 
     }
 
-    // Fetch image every 10 seconds
+    // Fetch image every 20 seconds
     setInterval(fetchPrinterImage, 20000);
 
-    // Fetch printer status every 10 seconds
+    // Fetch printer status every 20 seconds
     setInterval(fetchPrinterStatus, 20000);
 
     fetchBlockBookings()
