@@ -1,5 +1,6 @@
 # install dependencies from requirements.txt
 import subprocess
+from datetime import datetime
 
 subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True)
 
@@ -17,7 +18,6 @@ camera = Camera()
 
 app = Flask(__name__)
 
-
 # Load the credentials from the .env file
 class ConfigLoader:
     def __init__(self, config_file):
@@ -25,6 +25,7 @@ class ConfigLoader:
         self.credentials = {}
 
     def load_credentials(self):
+        print('Loading credentials')
         with open(self.config_file, 'r') as file:
             for line in file:
                 key, value = line.strip().split('=')
@@ -37,6 +38,7 @@ class ConfigLoader:
 # Render the index.html template with the context
 class TemplateRenderer:
     def __init__(self, context):
+        print('Context:', context)
         self.context = context
 
     def render_index(self):
@@ -156,19 +158,38 @@ def get_bookings():
             with open('arbs.xml', 'wb') as _f:
                 _f.write(response.content)
     except requests.exceptions.RequestException as e:
-        print('Request failed, falling back to cached arbs.xml:', e)
+        print('Request to famnen.arcada.fi failed, trying assets.arcada.fi:', e)
+        try:
+            response = requests.get('https://assets.arcada.fi/infowall/data/bookings.xml')
+            response.raise_for_status()
+            assets_root = ElementTree.fromstring(response.content)
+            bookings = assets_root.findall('booking')
+            # remove all bookings that are not for today and where the room_id does not start with F3
+            bookings = [booking for booking in bookings if booking.attrib['end'].split('T')[0] == datetime.today().strftime("%Y-%m-%d")
+                        and booking.attrib['room'].startswith('F3')]
+            assets_root.clear()
+            for booking in bookings:
+                assets_root.append(booking)
+            ElementTree.ElementTree(assets_root).write('arbs.xml', encoding='utf-8', xml_declaration=True)
+        except requests.exceptions.RequestException as e1:
+            print('Request to assets.arcada.fi failed, falling back to cached arbs.xml:', e1)
+
     try:
         tree = ElementTree.parse('arbs.xml')  # create element tree object
-        root = tree.getroot()  # get root element
+        root = tree.getroot()
         bookings = []
         for child in root:
             if child.tag == "booking":
-                # print(child.attrib)
-                bookings.append(child.attrib)  # list of dicts is suitable json
-            elif child.tag == "room":
-                continue
+                print(child.attrib)
+                # get the end date of the booking which is in format end="2024-08-29T12:00:00+03:00"
+                end_date = child.attrib['end'].split('T')[0]
+                current_date = datetime.today().strftime("%Y-%m-%d")
+                if not end_date == current_date:
+                    bookings.append({'title': 'No bookings today', 'room_id': child.attrib['room_id']})
+                else:
+                    bookings.append(child.attrib)  # list of dicts is suitable json
             else:
-                bookings.append({'Bookings': 'No bookings today'})
+                continue
         return jsonify(bookings)
     except Exception as ex:
         print(ex)
@@ -184,6 +205,7 @@ def gen(_camera):
 
 
 if __name__ == "__main__":
+    print('main')
     # Load the credentials from the .env file
     config_loader = ConfigLoader('.env')
     config_loader.load_credentials()
