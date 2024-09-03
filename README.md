@@ -21,8 +21,14 @@ You need opencv2 for the camera to work
 > USERNAME=maker
 > PASSWORD=YOUR_PRINTER_PASSWORD
 > PRINTER_IP=YOUR_PRINTER_IP 
-> LOG_FILE=PATH_TO_LOG_FILE
 > SERVER_PORT=5000
+> PRINTER_STATUS_ENDPOINT=/api/v1/status
+> PRINTER_JOB_ENDPOINT=/api/v1/job
+> PRINTER_NAME=prusamk4.example.net
+> LOG_FILE=logs/server.log
+> ROOMS=["F363", "F364", "F365", "F367", "F368", "F370"]
+> ARBS_URL="https://..."
+> ASSETS_URL="https://.../bookings.xml"
 >```
 > Also note that the IP of the server computer (where you run this script) is intended to be detected 
 > and injected automatically into the front-end.
