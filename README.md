@@ -14,7 +14,7 @@ of the printer as well as some additional information about the print job.
 You need flask for the server to work
 You need opencv2 for the camera to work
 `pip install flask opencv-python`
-
+ 
 > [!NOTE]
 > You need to provide environment for `server.py` in a file `.env`:
 > ```
