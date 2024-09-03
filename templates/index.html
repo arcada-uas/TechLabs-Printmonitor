@@ -26,7 +26,8 @@
     <h1>Printer status</h1>
     <!-- Prusa-server computer -->
     <div id="printContainer">
-        <img id="printerImage" src="{{ image_url }}" alt="Printer Image">
+{#        <img id="printerImage" src="{{ image_url }}" alt="Printer Image">#}
+        <img id="printerImage" src="{{ url_for('video_feed') }}" alt="Video Stream">
         <div id="printMonitor">
             <p>
                 <strong>Status: </strong><span id="printer-state"></span><br>
