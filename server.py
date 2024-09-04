@@ -14,9 +14,30 @@ from config import config, get_server_ip, get_context
 
 
 debug = False  # True
+
+class CustomFormatter(logging.Formatter):
+    # Define color codes
+    BLUE = "\033[94m"
+    RED = "\033[91m"
+    RESET = "\033[0m"
+
+    def format(self, record):
+        log_fmt = self._style._fmt
+        if record.levelno == logging.INFO:
+            log_fmt = self.BLUE + self._style._fmt + self.RESET
+        elif record.levelno == logging.ERROR:
+            log_fmt = self.RED + self._style._fmt + self.RESET
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
 logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler()])
+
+# Apply custom formatter
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(CustomFormatter(handler.formatter._style._fmt))
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,22 +110,55 @@ def fetch_and_save_arbs_data(url, filename):
         logger.error(f'Request to {url} failed:', e)
         return False
 
+# function that checks if booking is today
+def is_booking_for_today(booking):
+    end_date = booking.attrib['end'].split('T')[0]
+    current_date = datetime.today().strftime("%Y-%m-%d")
+    return end_date == current_date
+
 def fetch_and_save_assets_data(url, filename):
     try:
         response = requests.get(url)
+        logger.debug(f'Fetching data from {url}')
+        logger.debug(f'Response: {response.content}')
+
         response.raise_for_status()
         assets_root = ElementTree.fromstring(response.content)
         bookings = assets_root.findall('booking')
-        bookings = [booking for booking in bookings if booking.attrib['end'].split('T')[0] == datetime.today().strftime("%Y-%m-%d")
-                    and booking.attrib['room'].startswith('F3')]
-        assets_root.clear()
+        logger.debug(f'Found {len(bookings)} bookings')
+        def filter_rooms(rooms_str):
+            # <booking id="2705388" title="Vårdandets grunder" room="E383, F365, B323" start="2024-09-04T12:30:00+03:00" ...
+            # <booking id="2750788" title="Digital Commerce " room="F363, F365" start="2024-09-05T13:00:00+03:00"
+            rooms = rooms_str.split(',')
+            filtered_rooms = [room.strip() for room in rooms if room.strip().startswith('F3')]
+            return (filtered_rooms[0] if len(filtered_rooms)>0 else [])
+
         for booking in bookings:
-            assets_root.append(booking)
+            # filter out bookings that are not today
+            if not is_booking_for_today(booking):
+                assets_root.remove(booking)
+                continue
+
+            filtered_rooms = filter_rooms(booking.attrib['room'])
+            if filtered_rooms:
+                booking.attrib['room'] = filtered_rooms
+            else:
+                assets_root.remove(booking)
+
         ElementTree.ElementTree(assets_root).write(filename, encoding='utf-8', xml_declaration=True)
         return True
     except requests.exceptions.RequestException as e:
         logger.error(f'Request to {url} failed:', e)
         return False
+
+
+def get_room_id(element, config):
+    if 'room_id' in element.attrib:
+        return element.attrib['room_id']
+    room = element.attrib.get('room')
+    if room in config.rooms:
+        return str(config.rooms.index(room) + 1)
+    return None
 
 def parse_bookings_from_xml(filename):
     try:
@@ -113,10 +167,9 @@ def parse_bookings_from_xml(filename):
         bookings = []
         for child in root:
             if child.tag == "booking":
-                end_date = child.attrib['end'].split('T')[0]
-                current_date = datetime.today().strftime("%Y-%m-%d")
-                if not end_date == current_date:
-                    bookings.append({'title': 'No bookings today', 'room_id': child.attrib['room_id']})
+                if not is_booking_for_today(child):
+                    room_id = get_room_id(child, config)
+                    bookings.append({'title': 'No bookings today', 'room_id': room_id})
                 else:
                     bookings.append(child.attrib)
         return bookings
@@ -124,14 +177,13 @@ def parse_bookings_from_xml(filename):
         logger.error(ex)
         return [{'error': 'no bookings available'}]
 
+
 @app.route('/api/arbs')
 def get_bookings():
-    arbs_url = config.arbs_url
-    assets_url = config.assets_url
     filename = 'arbs.xml'
 
-    if not fetch_and_save_arbs_data(arbs_url, filename):
-        if not fetch_and_save_assets_data(assets_url, filename):
+    if not fetch_and_save_arbs_data(config.arbs_url, filename):
+        if not fetch_and_save_assets_data(config.assets_url, filename):
             logger.error('Failed to fetch data from both ARBS and assets URLs, falling back to cached data.')
 
     return jsonify(parse_bookings_from_xml(filename))
@@ -147,5 +199,5 @@ def video_feed():
 
 if __name__ == "__main__":
     logger.info(f'Servers public IP4: {get_server_ip()}:{config.server_port}')
-    port = 5500 if debug else config.server_port
+    port = config.server_port_debug if debug else config.server_port
     app.run(host="0.0.0.0", port=port, debug=False)

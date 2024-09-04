@@ -9,6 +9,7 @@ class Config:
         load_dotenv()
         self.debug = os.getenv('DEBUG', 'False').lower() == 'true'
         self.server_port = int(os.getenv('SERVER_PORT', 5000))
+        self.server_port_debug = int(os.getenv('SERVER_PORT_DEBUG', 5300))
         self.username = os.getenv('USERNAME')
         self.password = os.getenv('PASSWORD')
         self.printer_ip = os.getenv('PRINTER_IP')
@@ -49,7 +50,7 @@ def get_context(_debug=False):
     # server_port = config_loader.get('SERVER_PORT')
     server_port = config.server_port
     if _debug:
-        server_port = 5500
+        server_port = 5300
     image_api = '/images/last'
     data_api = '/api/data'
     arbs_api = '/api/arbs'
@@ -60,8 +61,6 @@ def get_context(_debug=False):
 
     context = {
         'server': server,
-        # 'rooms': json.dumps(["F363", "F364", "F365", "F367", "F368", "F370"]),
-        # 'rooms': json.dumps(config.rooms),
         'rooms': config.rooms,
         'featuredContent': get_featured_content(),
         'image_url': f"{server}{image_api}",
@@ -71,4 +70,5 @@ def get_context(_debug=False):
     }
     if _debug:
         print('context printer url ', context['printer_status_url'])
+        print(context)
     return context
