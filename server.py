@@ -131,7 +131,7 @@ def fetch_and_save_assets_data(url, filename):
             # <booking id="2750788" title="Digital Commerce " room="F363, F365" start="2024-09-05T13:00:00+03:00"
             rooms = rooms_str.split(',')
             filtered_rooms = [room.strip() for room in rooms if room.strip().startswith('F3')]
-            return (filtered_rooms[0] if len(filtered_rooms)>0 else [])
+            return (filtered_rooms[0] if len(filtered_rooms)>0 else None)
 
         for booking in bookings:
             # filter out bookings that are not today
