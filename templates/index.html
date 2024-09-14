@@ -26,7 +26,7 @@
     <h1>Printer status</h1>
     <!-- Prusa-server computer -->
     <div id="printContainer">
-{#        <img id="printerImage" src="{{ image_url }}" alt="Printer Image">#}
+        {#        <img id="printerImage" src="{{ image_url }}" alt="Printer Image">#}
         <img id="printerImage" src="{{ url_for('video_feed') }}" alt="Video Stream">
         <div id="printMonitor">
             <p>
@@ -58,12 +58,12 @@
     const jokeElement = document.querySelector("#joke p");
     const bookingsElement = document.querySelector("#bookings");
     const fallbackElement = document.getElementById("fallback");
-
+    let idleStartTime = null;
 
     async function fetchPrinterImage() {
         try {
             const response = await fetch('{{ image_url }}');
-            if (!response.ok) throw new Error("Image data fetch failed");
+            {#if (!response.ok) throw new Error("Image data fetch failed");#}
             const blob = await response.blob();
             printerImage.src = URL.createObjectURL(blob);
         } catch (error) {
@@ -76,12 +76,29 @@
     async function fetchPrinterStatus() {
         try {
             const response = await fetch('{{printer_status_url}}');
-            if (!response.ok) throw new Error('Printer data fetch failed');
+            {#if (!response.ok) throw new Error('Printer data fetch failed');#}
             const data = await response.json();
-            if (!data || !data.printer || data.printer.state === 'IDLE') {
+
+            function showFeaturedContent() {
                 printStatus.style.display = "none";
                 featuredContent.style.display = "block";
+            }
+
+            if (!data || !data.printer || data.printer.state === 'IDLE') {
+                showFeaturedContent()
+            } else if (data.printer.state === 'finished'.toUpperCase()) {
+                if (!idleStartTime) {
+                    idleStartTime = new Date();
+                } else {
+                    const now = new Date();
+                    const diffMinutes = (now - idleStartTime) / (1000 * 60);
+                    if (diffMinutes >= 30) {
+                        {#console.log('Printer has been IDLE for 30 minutes');#}
+                        showFeaturedContent()
+                    }
+                }
             } else {
+                idleStartTime = null;
                 featuredContent.style.display = "none";
                 printStatus.style.display = "block";
                 document.querySelector("#printer-state").textContent = data.printer.state;
@@ -103,6 +120,97 @@
         }
     }
 
+    async function extract() {
+        try {
+            const response = await fetch('{{arbs_url}}');
+            {#if (!response.ok) throw new Error('ARBS data fetch failed');#}
+            const data = await response.json();
+            if (data.error) {
+                console.log('data: ' + data.error);
+            } else {
+                bookingsElement.innerHTML = "<h1>Bookings:</h1>";
+                const rooms = {{ rooms|safe }};
+                for (const booking of data) {
+                    let today = new Date();
+                    let bookingDate = new Date(booking.start);
+                    if (today.toDateString() === bookingDate.toDateString()) {
+                        addBookingToDOM(rooms, booking);
+                    } else {
+                        const response = await fetch('{{ url_for("static", filename="emptyBookings.html") }}');
+                        {#if (!response.ok) throw new Error('Failed to fetch emptyBookings.html');#}
+                        const text = await response.text();
+                        const doc = new DOMParser().parseFromString(text, 'text/html');
+                        const spanElements = Array.from(doc.querySelectorAll('span'));
+                        spanElements.forEach(span => bookingsElement.appendChild(span));
+                        break;
+                    }
+                }
+                fallbackElement.style.display = "none";
+            }
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+            fallbackElement.style.display = "block";
+        }
+    }
+
+
+    {# <!-- REFACTORING START--> #}
+    <!--
+    async function loadRoomSpan(eventRoom) {
+    try {
+        const response = await fetch('/path/to/roomSpan.html');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const roomSpan = doc.querySelector('span');
+        roomSpan.id = eventRoom;
+        bookingsElement.appendChild(roomSpan);
+    } catch (error) {
+        console.error('Error loading roomSpan:', error);
+    }
+}
+
+function appendBookingDetails(roomSpan, booking) {
+    function _time(time) {
+        const parsedTime = new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
+        return parsedTime === 'Invalid D' ? '' : parsedTime;
+    }
+
+    let rCol = roomSpan.querySelector(".right-column");
+    let rightRow = document.createElement("div");
+    rightRow.className = 'row-right';
+    let leftDiv = Object.assign(document.createElement("div"), { className: 'float-left' });
+    let time = document.createElement("time");
+    time.textContent = _time(booking.start) + " - " + _time(booking.end);
+    leftDiv.appendChild(time);
+    rightRow.appendChild(leftDiv);
+
+    let rightDiv = Object.assign(document.createElement("div"), { className: 'float-right' });
+    let summary = document.createElement("summary");
+    summary.textContent = booking.title;
+    rightDiv.appendChild(summary);
+    rightRow.appendChild(rightDiv);
+
+    rCol.appendChild(rightRow);
+}
+
+async function fetchBlockBookings() {
+    function addBookingToDOM(rooms, booking) {
+        let eventRoom = booking.room || rooms[booking.room_id - 1];
+        let roomSpan = document.getElementById(eventRoom);
+        if (!roomSpan) {
+            loadRoomSpan(eventRoom).then(() => {
+                roomSpan = document.getElementById(eventRoom);
+                appendBookingDetails(roomSpan, booking);
+            });
+        } else {
+            appendBookingDetails(roomSpan, booking);
+        }
+    }
+    await extract();
+}
+    -->
+    {# <!-- REFACTORING end--> #}
 
     async function fetchBlockBookings() {
         function addBookingToDOM(rooms, booking) {
@@ -154,42 +262,13 @@
             rCol.appendChild(rightRow);
         }
 
-        try {
-            const response = await fetch('{{arbs_url}}');
-            if (!response.ok) throw new Error('ARBS data fetch failed');
-            const data = await response.json();
-            if (data.error) {
-                console.log('data: ' + data.error);
-            } else {
-                bookingsElement.innerHTML = "<h1>Bookings:</h1>";
-                const rooms = {{ rooms|safe }};
-                for (const booking of data) {
-                    let today = new Date();
-                    let bookingDate = new Date(booking.start);
-                    if (today.toDateString() === bookingDate.toDateString()) {
-                        addBookingToDOM(rooms, booking);
-                    } else {
-                        const response = await fetch('{{ url_for("static", filename="emptyBookings.html") }}');
-                        if (!response.ok) throw new Error('Failed to fetch emptyBookings.html');
-                        const text = await response.text();
-                        const doc = new DOMParser().parseFromString(text, 'text/html');
-                        const spanElements = Array.from(doc.querySelectorAll('span'));
-                        spanElements.forEach(span => bookingsElement.appendChild(span));
-                        break;
-                    }
-                }
-                fallbackElement.style.display = "none";
-            }
-        } catch (error) {
-            console.error('Error fetching bookings:', error);
-            fallbackElement.style.display = "block";
-        }
+        await extract();
     }
 
     async function fetchJokes() {
         try {
             const response = await fetch('/static/jokes.arr');
-            if (!response.ok) throw new Error('Failed to fetch jokes');
+            {#if (!response.ok) throw new Error('Failed to fetch jokes');#}
             const text = await response.text();
             jokes = text.split('\n').map(joke => joke.replace(/^\d+\.\s*“|”$/g, '').trim()).filter(joke => joke !== '');
         } catch (error) {
