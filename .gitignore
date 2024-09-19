@@ -2,3 +2,4 @@ __pycache__
 arbs.xml
 images/last.png
 .env
+.venv

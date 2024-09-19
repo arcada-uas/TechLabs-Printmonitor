@@ -128,8 +128,10 @@ mark {
 }
 
 #printMonitor {
-    margin-left: 40px;
+    margin-left: 90px;
     line-height: 1.5;
+    position: relative;
+    top: -70px;
 }
 
 #featuredContent {

@@ -288,8 +288,8 @@ async function fetchBlockBookings() {
         setInterval(setRandomJoke, 10000);
     });
 
-    setInterval(fetchPrinterImage, 20000);
-    setInterval(fetchPrinterStatus, 20000);
+    setInterval(fetchPrinterImage, 20000*10);
+    setInterval(fetchPrinterStatus, 20000*10);
     fetchBlockBookings();
     setInterval(fetchBlockBookings, 1000 * 60 * 5);
 </script>
