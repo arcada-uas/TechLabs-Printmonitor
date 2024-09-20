@@ -120,7 +120,57 @@
         }
     }
 
-    async function extract() {
+    function addBookingToDOM(rooms, booking) {
+        function _time(time) {
+            const parsedTime = new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
+            return parsedTime === 'Invalid D' ? '' : parsedTime;
+        }
+
+        let eventRoom = booking.room || rooms[booking.room_id - 1];
+        let roomSpan = document.getElementById(eventRoom);
+        if (!roomSpan) {
+            roomSpan = document.createElement("span");
+            roomSpan.id = eventRoom;
+            bookingsElement.appendChild(roomSpan);
+            roomSpan.appendChild(document.createElement("hr"));
+            let table = document.createElement("div");
+            table.className = 'table';
+            let row = document.createElement("div");
+            row.className = 'row';
+            table.appendChild(row);
+            let colLeft = document.createElement("div");
+            colLeft.className = 'left-column';
+            colLeft.style.verticalAlign = 'center';
+            row.appendChild(colLeft);
+            let mark = document.createElement("mark");
+            mark.textContent = eventRoom;
+            colLeft.appendChild(mark);
+            let colRight = document.createElement("div");
+            colRight.className = 'right-column';
+            row.appendChild(colRight);
+            roomSpan.appendChild(table);
+        }
+
+        let rCol = roomSpan.querySelector(".right-column");
+        let rightRow = document.createElement("div");
+        rightRow.className = 'row-right';
+        let leftDiv = Object.assign(document.createElement("div"), {className: 'float-left'});
+        let time = document.createElement("time");
+        time.textContent = _time(booking.start) + " - " + _time(booking.end);
+        leftDiv.appendChild(time);
+        rightRow.appendChild(leftDiv);
+
+        let rightDiv = Object.assign(document.createElement("div"), {className: 'float-right'});
+        let summary = document.createElement("summary");
+        summary.textContent = booking.title;
+        rightDiv.appendChild(summary);
+        rightRow.appendChild(rightDiv);
+
+        rCol.appendChild(rightRow);
+    }
+
+
+    async function fetchBlockBookings() {
         try {
             const response = await fetch('{{arbs_url}}');
             {#if (!response.ok) throw new Error('ARBS data fetch failed');#}
@@ -153,117 +203,6 @@
         }
     }
 
-
-    {# <!-- REFACTORING START--> #}
-    <!--
-    async function loadRoomSpan(eventRoom) {
-    try {
-        const response = await fetch('/path/to/roomSpan.html');
-        const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, 'text/html');
-        const roomSpan = doc.querySelector('span');
-        roomSpan.id = eventRoom;
-        bookingsElement.appendChild(roomSpan);
-    } catch (error) {
-        console.error('Error loading roomSpan:', error);
-    }
-}
-
-function appendBookingDetails(roomSpan, booking) {
-    function _time(time) {
-        const parsedTime = new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
-        return parsedTime === 'Invalid D' ? '' : parsedTime;
-    }
-
-    let rCol = roomSpan.querySelector(".right-column");
-    let rightRow = document.createElement("div");
-    rightRow.className = 'row-right';
-    let leftDiv = Object.assign(document.createElement("div"), { className: 'float-left' });
-    let time = document.createElement("time");
-    time.textContent = _time(booking.start) + " - " + _time(booking.end);
-    leftDiv.appendChild(time);
-    rightRow.appendChild(leftDiv);
-
-    let rightDiv = Object.assign(document.createElement("div"), { className: 'float-right' });
-    let summary = document.createElement("summary");
-    summary.textContent = booking.title;
-    rightDiv.appendChild(summary);
-    rightRow.appendChild(rightDiv);
-
-    rCol.appendChild(rightRow);
-}
-
-async function fetchBlockBookings() {
-    function addBookingToDOM(rooms, booking) {
-        let eventRoom = booking.room || rooms[booking.room_id - 1];
-        let roomSpan = document.getElementById(eventRoom);
-        if (!roomSpan) {
-            loadRoomSpan(eventRoom).then(() => {
-                roomSpan = document.getElementById(eventRoom);
-                appendBookingDetails(roomSpan, booking);
-            });
-        } else {
-            appendBookingDetails(roomSpan, booking);
-        }
-    }
-    await extract();
-}
-    -->
-    {# <!-- REFACTORING end--> #}
-
-    async function fetchBlockBookings() {
-        function addBookingToDOM(rooms, booking) {
-            function _time(time) {
-                const parsedTime = new Date(time).toLocaleTimeString('fi-FI').slice(0, -3);
-                return parsedTime === 'Invalid D' ? '' : parsedTime;
-            }
-
-            let eventRoom = booking.room || rooms[booking.room_id - 1];
-            let roomSpan = document.getElementById(eventRoom);
-            if (!roomSpan) {
-                roomSpan = document.createElement("span");
-                roomSpan.id = eventRoom;
-                bookingsElement.appendChild(roomSpan);
-                roomSpan.appendChild(document.createElement("hr"));
-                let table = document.createElement("div");
-                table.className = 'table';
-                let row = document.createElement("div");
-                row.className = 'row';
-                table.appendChild(row);
-                let colLeft = document.createElement("div");
-                colLeft.className = 'left-column';
-                colLeft.style.verticalAlign = 'center';
-                row.appendChild(colLeft);
-                let mark = document.createElement("mark");
-                mark.textContent = eventRoom;
-                colLeft.appendChild(mark);
-                let colRight = document.createElement("div");
-                colRight.className = 'right-column';
-                row.appendChild(colRight);
-                roomSpan.appendChild(table);
-            }
-
-            let rCol = roomSpan.querySelector(".right-column");
-            let rightRow = document.createElement("div");
-            rightRow.className = 'row-right';
-            let leftDiv = Object.assign(document.createElement("div"), {className: 'float-left'});
-            let time = document.createElement("time");
-            time.textContent = _time(booking.start) + " - " + _time(booking.end);
-            leftDiv.appendChild(time);
-            rightRow.appendChild(leftDiv);
-
-            let rightDiv = Object.assign(document.createElement("div"), {className: 'float-right'});
-            let summary = document.createElement("summary");
-            summary.textContent = booking.title;
-            rightDiv.appendChild(summary);
-            rightRow.appendChild(rightDiv);
-
-            rCol.appendChild(rightRow);
-        }
-
-        await extract();
-    }
 
     async function fetchJokes() {
         try {
