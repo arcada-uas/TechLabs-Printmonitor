@@ -191,9 +191,13 @@ def get_bookings():
 
 @app.route('/video_feed')
 def video_feed():
-    # return video feed
-    return Response(camera.generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    # return video feed or a static image
+    try:
+        return Response(camera.generate_frames(),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+    except Exception as e:
+        logger.error('Could not get video feed:', e)
+        return send_from_directory("images", "arcada-logo.png")
 
 
 
