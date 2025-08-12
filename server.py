@@ -1,19 +1,30 @@
-# install dependencies from requirements.txt
 import subprocess
 import logging
 from datetime import datetime
+import sys
+from pathlib import Path
+import time
+import atexit
+import json
+import asyncio
 
-subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True)
+# install dependencies from requirements.txt
+try:
+    subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True)
+except:
+    print("Installation of requirements failed. You may need to install them manuially.")
 
 from flask import Flask, render_template, jsonify, send_from_directory, Response
 from requests.auth import HTTPDigestAuth
 from camera import Camera
 import requests
 import xml.etree.ElementTree as ElementTree
+
 from config import config, get_server_ip, get_context
 
+content_manager = subprocess.Popen(["python3", "content_manager.py"])
 
-debug = False  # True
+debug = True # False
 
 class CustomFormatter(logging.Formatter):
     # Define color codes
@@ -97,7 +108,6 @@ def get_data():
         return jsonify({'error': 'Could not connect to printer',
                         'printer': {'state': 'IDLE', 'display_name': 'Could not connect to printer'}})
 
-
 def fetch_and_save_arbs_data(url, filename):
     try:
         response = requests.get(url)
@@ -151,7 +161,6 @@ def fetch_and_save_assets_data(url, filename):
         logger.error(f'Request to {url} failed:', e)
         return False
 
-
 def get_room_id(element, config):
     if 'room_id' in element.attrib:
         return element.attrib['room_id']
@@ -177,7 +186,6 @@ def parse_bookings_from_xml(filename):
         logger.error(ex)
         return [{'error': 'no bookings available'}]
 
-
 @app.route('/api/arbs')
 def get_bookings():
     filename = 'arbs.xml'
@@ -199,9 +207,20 @@ def video_feed():
         logger.error('Could not get video feed:', e)
         return send_from_directory("images", "arcada-logo.png")
 
-
+# https://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program
+def cleanup():
+    timeout_sec = 5
+    p_sec = 0
+    for second in range(timeout_sec):
+        if content_manager.poll() == None:
+            time.sleep(1)
+            p_sec += 1
+    if p_sec >= timeout_sec:
+        content_manager.kill() # supported from python 2.6
+    print('cleaned up!')
 
 if __name__ == "__main__":
     logger.info(f'Servers public IP4: {get_server_ip()}:{config.server_port}')
     port = config.server_port_debug if debug else config.server_port
     app.run(host="0.0.0.0", port=port, debug=False)
+    atexit.register(cleanup)

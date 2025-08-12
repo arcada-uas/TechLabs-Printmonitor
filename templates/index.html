@@ -71,18 +71,21 @@
         }
     }
 
+    function showFeaturedContent() {
+                printStatus.style.display = "none";
+                featuredContent.style.display = "block";
+            // TODO: Add logic for morning reminder
+            // TODO: Design print queue
+            }
+
     // CORS redirection via localhost
 
     async function fetchPrinterStatus() {
-        try {
+        try { 
             const response = await fetch('{{printer_status_url}}');
             {#if (!response.ok) throw new Error('Printer data fetch failed');#}
             const data = await response.json();
 
-            function showFeaturedContent() {
-                printStatus.style.display = "none";
-                featuredContent.style.display = "block";
-            }
 
             if (!data || !data.printer || data.printer.state === 'IDLE') {
                 showFeaturedContent()
@@ -229,6 +232,7 @@
 
     {#setInterval(fetchPrinterImage, 10_000);#}
     setInterval(fetchPrinterStatus, 10_000);
+    showFeaturedContent()
     fetchBlockBookings();
     setInterval(fetchBlockBookings, 1000 * 60 * 5);
 </script>
