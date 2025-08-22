@@ -3,3 +3,4 @@ arbs.xml
 images/last.png
 .env
 .venv
+venv/
