@@ -144,6 +144,10 @@ mark {
 
 .feat-cont{
     margin: 40px;
+    margin-top: 0px;
+}
+.meme-container {
+    font-size: xx-large;
 }
 
 #joke {

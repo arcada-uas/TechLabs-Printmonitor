@@ -50,12 +50,21 @@ def get_featured_content(featured_content = None): # TODO: Add features, content
     # TODO: Display selected content
     
     if featured_content:
-        div_open ="<div class='feat-cont'> <h1>Todays meme:</h1>"
+        div_open ="<div class='feat-cont'>"
+        # TODO: Fetch title of meme
+        title_placeholder = featured_content["title"]
+        meme_title = "<h1>" + title_placeholder + "</h1><div class='meme-container'>"
         img_src_open = "<img src='"
-        img_src_close = "' style='margin-top: 20px; max-width: 600px; max-height: 350px; height: auto; width: auto;'>"
-        div_close = "</div>"
+        img_src_close = "' style='margin-top: 20px; max-width: 600px; max-height: 380px; height: auto; width: auto;'>"
+        # TODO: Fetch user from meme_data.json
+        cred_placeholder = featured_content["username"]
+        accreditation = "<span style='display: inline-block;margin-left: 40px;vertical-align: super;'><b>Todays meme by: </b><br>" + cred_placeholder + "<br><br>"
+        # TODO: Provide meme submission link
+        #more_memes = "<b>Wanna submit a meme?</b><br>memes.techlabs.fi<br></span>"
+        more_memes = "<b>&nbsp;</b><br>&nbsp;<br></span>"
+        div_close = "</div></div>"
 
-        return div_open + img_src_open + featured_content + img_src_close + div_close
+        return div_open + meme_title + img_src_open + featured_content["filename"] + img_src_close + accreditation + more_memes + div_close
     else:    
         with open('templates/featuredContent.html', 'r') as file:
             return file.read()
@@ -82,8 +91,11 @@ def select_meme():
                 if feature_date != "pending":
                     if feature_date == datestring_today:
                         chosen_filename = item['filename']
+                        chosen_username = item['user']
+                        chosen_title = item['title']
                         print("Today's feature features on!")
-                        return "static/content/images/" + chosen_filename
+                        content_dict = { "title" : chosen_title,  "filename" : "static/content/images/" + chosen_filename, "username" : chosen_username }
+                        return content_dict
                     else:
                         last_featured_date = datetime.datetime.strptime(item["featured"], "%Y-%m-%d")
                         if last_featured_date < oldest_rerun:
@@ -97,8 +109,11 @@ def select_meme():
                     filepath = Path("static/content/images/" + json_data[key]['filename'])
                     if filepath.exists() and not chosen_filename:
                         chosen_filename = json_data[key]['filename']
+                        chosen_username = json_data[key]['user']
+                        chosen_title = json_data[key]['title']
                         print("Here's a new feature!")
-                        return "static/content/images/" + chosen_filename
+                        content_dict = { "title" : chosen_title, "filename" : "static/content/images/" + chosen_filename, "username" : chosen_username }
+                        return content_dict
         if len(approved_dict) > 0: # TODO: TEST!
             for key, item in approved_dict.items():
                 json_data[key]['featured'] = datestring_today
@@ -106,10 +121,12 @@ def select_meme():
                 json.dump(json_data, json_data_file, indent=4)
                 json_data_file.close()
                 print("This one should be OK.")
-                return "static/content/images/" + approved_dict[key]['filename']
+                content_dict = { "title" : approved_dict[key]['title'], "filename" : "static/content/images/" + approved_dict[key]['filename'], "username" : approved_dict[key]['user'] }
+                return content_dict
         json_data[oldest_rerun_index]['featured'] = datestring_today
         print("An old favorite returns")
-        return "static/content/images/" + json_data[oldest_rerun_index]['filename']
+        content_dict = { "title" : json_data[oldest_rerun_index]['title'], "filename" : "static/content/images/" + json_data[oldest_rerun_index]['filename'], "username" : json_data[oldest_rerun_index]['user'] }
+        return content_dict
     except(FileNotFoundError):
         print("No meme data found.")
     return None
